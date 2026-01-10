@@ -160,7 +160,6 @@ function RuleView({ rules }: RuleViewPorp) {
   const sizeRef = useRef({ w: 0, h: 0 }); // CSS Pixel Size
   const inspectorDraggingRef = useRef(false); // Dragging inspector
 
-
   const blocks = useMemo(() => buildBlocks(rules), [rules]); // Block 資訊（用 ref 保存可變狀態） 
   const arrows = useMemo(() => buildArrows(rules), [rules]); // 箭頭資訊
 
@@ -170,6 +169,11 @@ function RuleView({ rules }: RuleViewPorp) {
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
   const activeBlockRef = useRef<Block | null>(null); // 目前被拖曳的Block
+
+  // 依據「是否被 inspect」決定畫不畫高亮邊框
+  const inspectedBlockIds = useMemo(() => {
+    return new Set(inspectors.map(i => i.block.id));
+  }, [inspectors]);
 
   // Canvas 視圖狀態（平移 / 縮放）
   const viewRef = useRef({
@@ -211,7 +215,7 @@ function RuleView({ rules }: RuleViewPorp) {
     drawArrows(ctx, blocks, arrows, view.scale);
 
     // 畫 blocks
-    drawBlocks(ctx, blocks);
+    drawBlocks(ctx, blocks, inspectedBlockIds);
 
     // minimap
     const mm = minimapRef.current;
@@ -222,8 +226,7 @@ function RuleView({ rules }: RuleViewPorp) {
       }
     }
 
-
-  }, [arrows]);
+  }, [arrows, inspectedBlockIds]);
 
 
   // initCanvas
@@ -343,11 +346,8 @@ function RuleView({ rules }: RuleViewPorp) {
       const hitBlock = hitTestBlock(wx, wy, blocks);
 
       if (!hitBlock) return;
-      console.log("hitBlock");
 
       setInspectors(prev => {
-        console.log("prev inspectors:", prev.map(i => i.block.id));
-        console.log("hit:", hitBlock.id);
 
         // 如果先前已經生成就不重覆生成
         if (prev.some(i => i.block.id === hitBlock.id)) return prev;
@@ -355,8 +355,6 @@ function RuleView({ rules }: RuleViewPorp) {
         // 如果沒有就生成
         return [...prev, { block: hitBlock, x: mx, y: my, },];
       });
-
-      console.log("Canvas: onDoubleClick");
 
     }
 
@@ -479,7 +477,7 @@ function RuleView({ rules }: RuleViewPorp) {
       window.removeEventListener("mouseup", onMouseUp);
       canvas.removeEventListener("wheel", onWheel);
     };
-  }, [blocks]);
+  }, [blocks, redraw]);
 
   useEffect(() => {
     const canvas = minimapRef.current!;
@@ -547,13 +545,14 @@ function RuleView({ rules }: RuleViewPorp) {
               block={block}
               initialX={x}
               initialY={y}
-              wrapperRef={canvasStageRef}   // ✅ 一定要用 canvasStage
+              wrapperRef={canvasStageRef}
+              inspectorDraggingRef={inspectorDraggingRef}
+
               onClose={() => {
                 setInspectors(prev =>
                   prev.filter(i => i.block.id !== block.id)
                 );
               }}
-              inspectorDraggingRef={inspectorDraggingRef}
             />
           ))}
 
@@ -605,7 +604,8 @@ function buildBlocks(data: RuleData[]): Block[] {
 // 繪製單一方塊
 function drawBlock(
   ctx: CanvasRenderingContext2D,
-  b: Block
+  b: Block,
+  highlighted: boolean
 ) {
 
   // 先畫白底
@@ -620,9 +620,28 @@ function drawBlock(
     ctx.drawImage(img, b.x, b.y, b.w, b.h);
   }
 
-  // 邊框
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.25)";
-  ctx.strokeRect(b.x, b.y, b.w, b.h);
+  // 邊框 (選取時候高亮)
+  if (highlighted) {
+    ctx.save();
+
+    ctx.strokeStyle = "#2563eb";          // 高亮藍
+    ctx.lineWidth = 2;
+    ctx.shadowColor = "rgba(37,99,235,0.6)";
+    ctx.shadowBlur = 8;
+
+    ctx.strokeRect(
+      b.x - 2,
+      b.y - 2,
+      b.w + 4,
+      b.h + 4
+    );
+
+    ctx.restore();
+  } else {
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.25)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(b.x, b.y, b.w, b.h);
+  }
 
   // 文字
   ctx.fillStyle = "rgba(0, 0, 0, 0.53)";
@@ -635,10 +654,12 @@ function drawBlock(
 // 繪製所有方塊
 function drawBlocks(
   ctx: CanvasRenderingContext2D,
-  blocks: Block[]
+  blocks: Block[],
+  inspectedIds: Set<string>
 ) {
-  blocks.forEach((b) => drawBlock(ctx, b));
+  blocks.forEach((b) => drawBlock(ctx, b, inspectedIds.has(b.id)));
 }
+
 
 // hit-test（判斷有沒有點到 Block）
 
@@ -1034,10 +1055,6 @@ function BlockInspector({
 
   useEffect(() => {
     const panel = panelRef.current;
-
-    console.log(`panel:${panel}`)
-
-
     if (!panel) return;
 
     panel.style.transform =
@@ -1112,7 +1129,7 @@ function BlockInspector({
       if (resizeRef.current.resizing) {
         resizeRef.current.resizing = false;
 
-        // ⭐⭐ 核心修正：同步 drag origin
+        // 同步 drag origin
         dragRef.current.originX =
           panel.getBoundingClientRect().left - rect.left;
         dragRef.current.originY =

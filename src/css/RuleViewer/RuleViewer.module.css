@@ -25,7 +25,8 @@
 .overlay {
   position: absolute;
   inset: 0;
-  pointer-events: none;   /* ⭐⭐⭐ 關鍵這一行 */
+  pointer-events: none;
+  /* ⭐⭐⭐ 關鍵這一行 */
 }
 
 .tooltip {
@@ -162,6 +163,10 @@
 .inspector {
   position: absolute;
   width: 340px;
+
+  min-width: 260px;
+  min-height: 350px;
+
   background: #fff;
   border: 1px solid #e5e7eb;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
@@ -197,6 +202,7 @@
 .section {
   padding: 8px 12px;
   overflow-y: auto;
+  overflow: auto;
 }
 
 .fieldList {
@@ -240,9 +246,7 @@
   width: 14px;
   height: 14px;
   cursor: se-resize;
-  background: linear-gradient(
-    135deg,
-    transparent 50%,
-    #9ca3af 50%
-  );
+  background: linear-gradient(135deg,
+      transparent 50%,
+      #9ca3af 50%);
 }
