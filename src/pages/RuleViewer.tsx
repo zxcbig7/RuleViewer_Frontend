@@ -104,6 +104,10 @@ export default function RuleViewer() {
   const [selectedRule, setSelectedRule] = useState<string | null>(null); // 當下被選擇的 Rule
   const [rules, setRules] = useState<RuleData[]>([]); // 被選擇rule的所有資料
 
+  const [matchedBlockIds, setMatchedBlockIds] = useState<Set<string> | null>(null); // 符合搜尋的 Block Ids
+
+
+
   // effect 只在第一次 render 後讀取Rule Name
   useEffect(() => {
     // Promise resolve 的值會當參數傳入 setRuleNames
@@ -128,9 +132,13 @@ export default function RuleViewer() {
             // 把 setSelectedRule 函式 callback 傳到 DropDown 的每一個選項裡面
             onSelect={setSelectedRule}
           />
+          <RuleContentSearch
+            rules={rules}
+            onMatchChange={setMatchedBlockIds}
+          />
         </div>
         <div className={style.canvasWrapper}>
-          <RuleView rules={rules} />
+          <RuleView rules={rules} matchedBlockIds={matchedBlockIds} />
         </div>
       </div>
     </>
@@ -139,9 +147,10 @@ export default function RuleViewer() {
 // #endregion
 
 // #region RuleView
-type RuleViewPorp = {
+type RuleViewProps = {
   rules: RuleData[];
-}
+  matchedBlockIds: Set<string> | null;
+};
 
 type InspectorState = {
   block: Block;
@@ -149,7 +158,7 @@ type InspectorState = {
   y: number;
 };
 
-function RuleView({ rules }: RuleViewPorp) {
+function RuleView({ rules, matchedBlockIds }: RuleViewProps) {
   // 控制canvas
   const canvasStageRef = useRef<HTMLDivElement | null>(null); // 外框
   const canvasRef = useRef<HTMLCanvasElement | null>(null); // Canvas
@@ -188,7 +197,7 @@ function RuleView({ rules }: RuleViewPorp) {
     lastX: 0,
     lastY: 0,
   });
-
+  
   // 使用 useCallback 固定 redraw 的函式 reference，避免每次 render 產生新函式
   const redraw = useCallback((
     ctx: CanvasRenderingContext2D,
@@ -215,7 +224,7 @@ function RuleView({ rules }: RuleViewPorp) {
     drawArrows(ctx, blocks, arrows, view.scale);
 
     // 畫 blocks
-    drawBlocks(ctx, blocks, inspectedBlockIds);
+    drawBlocks(ctx, blocks, inspectedBlockIds, matchedBlockIds);
 
     // minimap
     const mm = minimapRef.current;
@@ -605,8 +614,15 @@ function buildBlocks(data: RuleData[]): Block[] {
 function drawBlock(
   ctx: CanvasRenderingContext2D,
   b: Block,
-  highlighted: boolean
+  highlighted: boolean,
+  isMatched: boolean
 ) {
+  ctx.save();
+
+  if (!isMatched) {
+    console.log("灰:", b.id);
+    ctx.filter = "grayscale(1)";
+  }
 
   // 先畫白底
   ctx.fillStyle = "#ffffff";
@@ -649,15 +665,26 @@ function drawBlock(
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h + 4);
+
+  ctx.restore();
+
 }
 
 // 繪製所有方塊
 function drawBlocks(
   ctx: CanvasRenderingContext2D,
   blocks: Block[],
-  inspectedIds: Set<string>
+  inspectedIds: Set<string>,
+  matchedIds: Set<string> | null
 ) {
-  blocks.forEach((b) => drawBlock(ctx, b, inspectedIds.has(b.id)));
+  blocks.forEach((b) =>
+    drawBlock(
+      ctx,
+      b,
+      inspectedIds.has(b.id),
+      matchedIds ? matchedIds.has(b.id) : true
+    )
+  );
 }
 
 
@@ -1492,4 +1519,57 @@ function RuleDropdownSearch({ options, onSelect }: DropdownProps) {
     </div>
   );
 }
+// #endregion
+
+// #region Search only for Rule Content
+
+function matchRule(rule: RuleData, keyword: string): boolean {
+  const kw = keyword.toLowerCase();
+
+  return (
+    rule.BLOCK_NAME.toLowerCase().includes(kw) ||
+    (rule.KEY !== null && rule.KEY.toLowerCase().includes(kw)) ||
+    (rule.COLUMN1 !== null && rule.COLUMN1.toLowerCase().includes(kw)) ||
+    (rule.COLUMN2 !== null && rule.COLUMN2.toLowerCase().includes(kw)) ||
+    (rule.VALUE !== null && rule.VALUE.toLowerCase().includes(kw))
+  );
+}
+
+type RuleContentSearchProps = {
+  rules: RuleData[];
+  onMatchChange: (matched: Set<string> | null) => void;
+};
+
+function RuleContentSearch({ rules, onMatchChange }: RuleContentSearchProps) {
+  const [keyword, setKeyword] = useState("");
+
+  useEffect(() => {
+    const kw = keyword.trim();
+    if (!kw) {
+      onMatchChange(null);
+      return;
+    }
+
+    const matched = new Set(
+      rules
+        .filter(r => matchRule(r, kw))
+        .map(r => r.BLOCK_NAME)
+    );
+
+    onMatchChange(matched);
+  }, [keyword, rules, onMatchChange]);
+
+  return (
+    <Input
+      placeholder="Search Rule Content (block / key / column / value)"
+      allowClear
+      style={{ width: 360 }}
+      value={keyword}
+      onChange={(e) => setKeyword(e.target.value)}
+    />
+  );
+}
+
+// #endregion
+
 // #endregion
