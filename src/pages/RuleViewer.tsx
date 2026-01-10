@@ -933,6 +933,7 @@ type BlockTooltipProps = {
   mousePos: { x: number; y: number } | null;
   canvasSize: { w: number; h: number };
 };
+
 function BlockTooltip({ block, mousePos, canvasSize }: BlockTooltipProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
@@ -986,6 +987,9 @@ function BlockTooltip({ block, mousePos, canvasSize }: BlockTooltipProps) {
     </div>
   );
 }
+// #endregion
+
+// #region Block Inspector
 
 type FieldDef = {
   label: string;
@@ -1013,10 +1017,8 @@ type InspectorField = {
 const INSPECTOR_FIELDS: InspectorField[] = [
   { label: "Column1", key: "COLUMN1" },
   { label: "Column2", key: "COLUMN2" },
-
   { label: "Value", key: "VALUE" },
 ];
-
 type BlockInspectorProps = {
   block: Block;
   initialX: number;
@@ -1026,6 +1028,12 @@ type BlockInspectorProps = {
   inspectorDraggingRef: React.MutableRefObject<boolean>;
 };
 
+const LONG_FIELDS = new Set<keyof RuleData>([
+  "COLUMN1",
+  "COLUMN2",
+  "VALUE",
+]);
+
 function BlockInspector({
   block,
   initialX,
@@ -1034,6 +1042,13 @@ function BlockInspector({
   onClose,
   inspectorDraggingRef
 }: BlockInspectorProps) {
+
+  // false = 未收合（展開）
+  const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({
+    COLUMN1: true,
+    COLUMN2: true,
+    VALUE: true,
+  });
 
   const panelRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef({
@@ -1169,8 +1184,6 @@ function BlockInspector({
       className={style.inspector}
       onMouseDown={(e) => e.stopPropagation()}
     >
-
-
       {/* Header */}
       <div
         className={style.header}
@@ -1217,12 +1230,36 @@ function BlockInspector({
             const value = r[key];
             if (!value) return null;
 
-            return (
-              <div className={style.fieldRow}>
-                <div className={style.fieldLabel}>{label}</div>
+            const isLong = LONG_FIELDS.has(key);
+            const collapsed = collapsedMap[key];
 
-                {label === "Value" ? (
-                  <pre className={style.codeBlock}>
+            return (
+              <div key={key} className={style.fieldBlock}>
+                {/* ===== Header：Label + Toggle ===== */}
+                <div className={style.fieldHeader}>
+                  <div className={style.fieldLabel}>{label}</div>
+
+                  {isLong && (
+                    <button
+                      className={style.toggleBtn}
+                      onClick={() =>
+                        setCollapsedMap(prev => ({
+                          ...prev,
+                          [key]: !prev[key],
+                        }))
+                      }
+                    >
+                      {collapsed ? "展開" : "收合"}
+                    </button>
+                  )}
+                </div>
+
+                {/* ===== Content ===== */}
+                {isLong ? (
+                  <pre
+                    className={`${style.codeBlock} ${collapsed ? style.collapsed : ""
+                      }`}
+                  >
                     {String(value)}
                   </pre>
                 ) : (
@@ -1231,6 +1268,7 @@ function BlockInspector({
               </div>
             );
           })}
+
         </div>
       </div>
 
