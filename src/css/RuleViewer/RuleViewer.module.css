@@ -164,8 +164,8 @@
   position: absolute;
   width: 340px;
 
-  min-width: 260px;
-  min-height: 350px;
+  min-width: 360px;
+  min-height: 320px;
 
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -249,4 +249,40 @@
   background: linear-gradient(135deg,
       transparent 50%,
       #9ca3af 50%);
+}
+
+/* 為 code 類型內容定義專屬樣式 */
+.codeBlock {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+
+  font-size: 12px;
+  line-height: 1.5;
+
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+
+  padding: 8px 10px;
+  margin: 0;
+
+  max-height: 120px;
+  overflow: auto;
+
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+
+
+/* 強化 Conditions 區的層級感 */
+.sectionTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.section {
+  padding: 10px 12px;
 }

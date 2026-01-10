@@ -1169,6 +1169,8 @@ function BlockInspector({
       className={style.inspector}
       onMouseDown={(e) => e.stopPropagation()}
     >
+
+
       {/* Header */}
       <div
         className={style.header}
@@ -1195,6 +1197,16 @@ function BlockInspector({
         </div>
         <button onClick={onClose}>✕</button>
       </div>
+      {/* Meta */}
+      <div className={style.section}>
+        <div className={style.sectionTitle}>Meta</div>
+        <div className={style.metaGrid}>
+          {/* <MetaItem label="Main:" value={r.PRE_BLOCK?.[0]} /> */}
+          {/*<MetaItem label="Sub:" value={r.PRE_BLOCK?.[1]} /> */}
+          <MetaItem label="Key:" value={r.KEY} />
+        </div>
+      </div>
+
 
       {/* Main: Column / Value */}
       <div className={style.section}>
@@ -1206,28 +1218,23 @@ function BlockInspector({
             if (!value) return null;
 
             return (
-              <div key={key} className={style.fieldRow}>
+              <div className={style.fieldRow}>
                 <div className={style.fieldLabel}>{label}</div>
-                <div className={style.fieldValue}>{String(value)}</div>
+
+                {label === "Value" ? (
+                  <pre className={style.codeBlock}>
+                    {String(value)}
+                  </pre>
+                ) : (
+                  <div className={style.fieldValue}>{String(value)}</div>
+                )}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Meta */}
-      <div className={style.section}>
-        <div className={style.sectionTitle}>Meta</div>
 
-        <div className={style.metaGrid}>
-          <MetaItem label="Phase" value={r.PHASE} />
-          <MetaItem label="Rule" value={r.RULE_NAME} />
-          <MetaItem label="Group" value={r.BLOCK_GROUP} />
-          <MetaItem label="SEQ" value={r.BLOCK_SEQ} />
-          <MetaItem label="Pre Block" value={r.PRE_BLOCK?.join(",")} />
-          <MetaItem label="Key" value={r.KEY} />
-        </div>
-      </div>
 
       <div
         className={style.resizeHandle}
