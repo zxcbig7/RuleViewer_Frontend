@@ -157,16 +157,28 @@ export default function RuleViewer() {
     <>
       <div className={style.ruleViewerRoot}>
         <div className={style.toolbar}>
-          <RuleDropdownSearch
-            options={ruleNames}
-            // 把 setSelectedRule 函式 callback 傳到 DropDown 的每一個選項裡面
-            onSelect={setSelectedRule}
-          />
-          <RuleContentSearch
-            rules={rules}
-            onMatchChange={setMatchedBlockIds}
-          />
+          <div className={style.toolbarLeft}>
+            <RuleDropdownSearch
+              options={ruleNames}
+              // 把 setSelectedRule 函式 callback 傳到 DropDown 的每一個選項裡面
+              onSelect={setSelectedRule}
+            />
+          </div>
+
+          <div className={style.toolbarDivider} />
+
+          <div className={style.toolbarRight}>
+            <RuleContentSearch
+              rules={rules}
+              onMatchChange={setMatchedBlockIds}
+            />
+          </div>
+
+          <div className={style.toolbarDivider} />
+
+
         </div>
+
         <div className={style.canvasWrapper}>
           <RuleView rules={rules} matchedBlockIds={matchedBlockIds} />
         </div>
