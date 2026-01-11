@@ -174,7 +174,6 @@
   /* 比 canvas 高 */
   pointer-events: auto;
   overflow-anchor: none;
-
   top: 0;
   left: 0;
 }
@@ -264,14 +263,26 @@
 /* Resize 用 */
 .resizeHandle {
   position: absolute;
-  right: 4px;
-  bottom: 4px;
+  right: 2px;
+  bottom: 2px;
+
   width: 14px;
   height: 14px;
+
   cursor: se-resize;
-  background: linear-gradient(135deg,
-      transparent 50%,
-      #9ca3af 50%);
+}
+
+.resizeHandle::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+
+  width: 0;
+  height: 0;
+
+  border-right: 8px solid #9ca3af;   /* 灰色 */
+  border-top: 8px solid transparent;
 }
 
 /* 為 code 類型內容定義專屬樣式 */
@@ -304,6 +315,12 @@
 
 .section {
   padding: 10px 12px;
+}
+
+.content {
+  height: 100%;
+  overflow: auto;
+  padding: 12px;
 }
 
 /* 收合狀態 */

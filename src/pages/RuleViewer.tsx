@@ -25,7 +25,7 @@ async function loadRule(ruleName: string): Promise<RuleDTO[]> {
 
   const data = (await res.json()) as RuleDTO[];
 
-  console.log(JSON.stringify(data, null,2));
+  console.log(JSON.stringify(data, null, 2));
   return data;
 }
 
@@ -267,7 +267,7 @@ function RuleView({ rules, matchedBlockIds }: RuleViewProps) {
       }
     }
 
-  }, [arrows, inspectedBlockIds]);
+  }, [arrows, inspectedBlockIds, matchedBlockIds]);
 
 
   // initCanvas
@@ -615,7 +615,7 @@ type Block = {
   y: number;           // posy
   w: number;
   h: number;
-  type: BlockType; // 直接設定四種情況
+  type: BlockType;
   label: string;
 
   raw: RuleData; // 原始資料
@@ -1053,7 +1053,7 @@ function BlockInspector({
   block,
   initialX,
   initialY,
-  wrapperRef,        // ⭐ 這才是正確的座標基準
+  wrapperRef,
   onClose,
   inspectorDraggingRef
 }: BlockInspectorProps) {
@@ -1200,93 +1200,96 @@ function BlockInspector({
   const r = block.raw;
 
   return (
-    <div ref={panelRef}
+    <div
+      ref={panelRef}
       className={style.inspector}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      {/* Header */}
-      <div
-        className={style.header}
-        onMouseDown={(e) => {
-          e.stopPropagation();
+      {/* ⭐ Scroll / Content 區 */}
+      <div className={style.content}>
+        {/* Header */}
+        <div
+          className={style.header}
+          onMouseDown={(e) => {
+            e.stopPropagation();
 
-          const wrapper = wrapperRef.current;
-          if (!wrapper) return;
+            const wrapper = wrapperRef.current;
+            if (!wrapper) return;
 
-          const rect = wrapper.getBoundingClientRect();
+            const rect = wrapper.getBoundingClientRect();
 
-          inspectorDraggingRef.current = true;
-          dragRef.current.dragging = true;
+            inspectorDraggingRef.current = true;
+            dragRef.current.dragging = true;
 
-          dragRef.current.startX = e.clientX - rect.left;
-          dragRef.current.startY = e.clientY - rect.top;
-        }}
-      >
-        <div>
-          <strong>{r.BLOCK_NAME}</strong>
-          <span style={{ marginLeft: 8, color: "#6b7280" }}>
-            ({r.BLOCK_TYPE})
-          </span>
+            dragRef.current.startX = e.clientX - rect.left;
+            dragRef.current.startY = e.clientY - rect.top;
+          }}
+        >
+          <div>
+            <strong>{r.BLOCK_NAME}</strong>
+            <span style={{ marginLeft: 8, color: "#6b7280" }}>
+              ({r.BLOCK_TYPE})
+            </span>
+          </div>
+          <button onClick={onClose}>✕</button>
         </div>
-        <button onClick={onClose}>✕</button>
-      </div>
-      {/* Meta */}
-      <div className={style.section}>
-        <div className={style.sectionTitle}>Meta</div>
-        <div className={style.metaGrid}>
-          {/*<MetaItem label="Main:" value={r.PRE_BLOCK?.[0]} />*/}
-          {/*<MetaItem label="Sub:" value={r.PRE_BLOCK?.[1]} />*/}
-          <MetaItem label="Key:" value={r.KEY} />
+
+        {/* Meta */}
+        <div className={style.section}>
+          <div className={style.sectionTitle}>Meta</div>
+          <div className={style.metaGrid}>
+            <MetaItem label="Key:" value={r.KEY} />
+          </div>
         </div>
-      </div>
 
+        {/* Conditions */}
+        <div className={style.section}>
+          <div className={style.sectionHeader}>
+            <div className={style.sectionTitle}>Conditions</div>
 
-      {/* Main: Column / Value */}
-<div className={style.section}>
-  <div className={style.sectionHeader}>
-    <div className={style.sectionTitle}>Conditions</div>
-
-    <div className={style.sectionActions}>
-      <button onClick={expandAll}>全部展開</button>
-      <button onClick={collapseAll}>全部收合</button>
-    </div>
-  </div>
-
-  {r.VALUES.map((v, idx) => {
-    const collapsed = collapsedMap[idx] ?? false;
-
-    return (
-      <div key={idx} className={style.conditionCard}>
-        <div className={style.fieldHeader}>
-          <div className={style.fieldLabel}>
-            Condition {idx + 1}
+            <div className={style.sectionActions}>
+              <button onClick={expandAll}>全部展開</button>
+              <button onClick={collapseAll}>全部收合</button>
+            </div>
           </div>
 
-          <button
-            className={style.toggleBtn}
-            onClick={() =>
-              setCollapsedMap(prev => ({
-                ...prev,
-                [idx]: !collapsed,
-              }))
-            }
-          >
-            {collapsed ? "展開" : "收合"}
-          </button>
+          {r.VALUES.map((v, idx) => {
+            const collapsed = collapsedMap[idx] ?? false;
+
+            return (
+              <div key={idx} className={style.conditionCard}>
+                <div className={style.fieldHeader}>
+                  <div className={style.fieldLabel}>
+                    Condition {idx + 1}
+                  </div>
+
+                  <button
+                    className={style.toggleBtn}
+                    onClick={() =>
+                      setCollapsedMap(prev => ({
+                        ...prev,
+                        [idx]: !collapsed,
+                      }))
+                    }
+                  >
+                    {collapsed ? "展開" : "收合"}
+                  </button>
+                </div>
+
+                {!collapsed && (
+                  <div className={style.conditionBody}>
+                    {v.COLUMN1 && <div><b>Column1:</b> {v.COLUMN1}</div>}
+                    {v.COLUMN2 && <div><b>Column2:</b> {v.COLUMN2}</div>}
+                    <pre className={style.codeBlock}>{v.VALUE}</pre>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-
-        {!collapsed && (
-          <div className={style.conditionBody}>
-            {v.COLUMN1 && <div><b>Column1:</b> {v.COLUMN1}</div>}
-            {v.COLUMN2 && <div><b>Column2:</b> {v.COLUMN2}</div>}
-            <pre className={style.codeBlock}>{v.VALUE}</pre>
-          </div>
-        )}
       </div>
-    );
-  })}
-</div>
 
+      {/* ⭐ Resize Handle：獨立於 content */}
       <div
         className={style.resizeHandle}
         onMouseDown={(e) => {
@@ -1306,6 +1309,7 @@ function BlockInspector({
       />
     </div>
   );
+
 }
 
 function MetaItem({ label, value }: { label: string; value?: string | null }) {
@@ -1460,6 +1464,8 @@ function RuleDropdownSearch({ options, onSelect }: DropdownProps) {
         value={inputValue}
         placeholder="Input Rule Name"
 
+        allowClear
+
         // 聚焦時顯示下拉選單
         onFocus={() => setOpen(true)}
 
@@ -1515,10 +1521,14 @@ function matchRule(rule: RuleData, keyword: string): boolean {
   if (rule.KEY && rule.KEY.toLowerCase().includes(kw)) return true;
 
   // 比對所有資料
-  return rule.VALUES.some(v =>
-    (v.COLUMN1 && v.COLUMN1.toLowerCase().includes(kw)) ||
-    (v.COLUMN2 && v.COLUMN2.toLowerCase().includes(kw)) ||
-    v.VALUE.toLowerCase().includes(kw)
+  return (
+    rule.KEY && rule.KEY.toLowerCase().includes(kw) ||
+    rule.BLOCK_NAME && rule.BLOCK_NAME.toLowerCase().includes(kw) ||
+
+    rule.VALUES.some(v =>
+      (v.COLUMN1 && v.COLUMN1.toLowerCase().includes(kw)) ||
+      (v.COLUMN2 && v.COLUMN2.toLowerCase().includes(kw)) ||
+      v.VALUE.toLowerCase().includes(kw))
   );
 }
 
@@ -1530,7 +1540,7 @@ type RuleContentSearchProps = {
 function RuleContentSearch({ rules, onMatchChange }: RuleContentSearchProps) {
   const [keyword, setKeyword] = useState("");
 
-  useEffect(() => {
+  const handleSearch = useCallback(() => {
     const kw = keyword.trim();
     if (!kw) {
       onMatchChange(null);
@@ -1539,20 +1549,28 @@ function RuleContentSearch({ rules, onMatchChange }: RuleContentSearchProps) {
 
     const matched = new Set(
       rules
-        .filter(r => matchRule(r, kw))
-        .map(r => r.BLOCK_NAME)
+        .filter((r: RuleData) => matchRule(r, kw))
+        .map((r: RuleData) => r.BLOCK_NAME)
     );
 
     onMatchChange(matched);
   }, [keyword, rules, onMatchChange]);
 
+  const handleClear = useCallback(() => {
+    setKeyword("");
+    onMatchChange(null);
+  }, [onMatchChange]);
+
   return (
-    <Input
+    <Input.Search
       placeholder="Search Rule Content (block / key / column / value)"
-      allowClear
       style={{ width: 360 }}
       value={keyword}
+      enterButton="Search"
+      allowClear
       onChange={(e) => setKeyword(e.target.value)}
+      onSearch={handleSearch}   // Enter 或按鈕
+      onClear={handleClear}
     />
   );
 }
