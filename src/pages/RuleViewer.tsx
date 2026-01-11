@@ -131,12 +131,27 @@ function convertDtosToData(dtos: RuleDTO[]): RuleData[] {
 // #endregion
 
 // #region RuleViewer
+
+type RuleViewHandle = {
+  focusBlockById: (id: string) => void;
+};
+
 export default function RuleViewer() {
   const [ruleNames, setRuleNames] = useState<string[]>([]); // 所有 Rule Name
   const [selectedRule, setSelectedRule] = useState<string | null>(null); // 當下被選擇的 Rule
   const [rules, setRules] = useState<RuleData[]>([]); // 被選擇rule的所有資料
 
-  const [matchedBlockIds, setMatchedBlockIds] = useState<Set<string> | null>(null); // 符合搜尋的 Block Ids
+  const [matchedBlockList, setMatchedBlockList] = useState<string[] | null>(null); // 搜尋結果（有順序，依 SEQ）
+  const [matchIndex, setMatchIndex] = useState(0); // 目前選到第幾個搜尋結果
+  const matchedBlockIds = useMemo(() => {
+    if (!matchedBlockList) return null;
+    return new Set(matchedBlockList);
+  }, [matchedBlockList]);
+
+
+  // 在 RuleView 增加「聚焦方塊」能力（用 ref 暴露方法）
+
+  const ruleViewRef = useRef<RuleViewHandle | null>(null);
 
   // effect 只在第一次 render 後讀取Rule Name
   useEffect(() => {
@@ -152,6 +167,7 @@ export default function RuleViewer() {
     loadRule(selectedRule).then((data) => setRules(convertDtosToData(data)))
 
   }, [selectedRule]);
+
 
   return (
     <>
@@ -170,17 +186,41 @@ export default function RuleViewer() {
           <div className={style.toolbarRight}>
             <RuleContentSearch
               rules={rules}
-              onMatchChange={setMatchedBlockIds}
+              onMatchChange={(list) => {
+                setMatchedBlockList(list);
+                setMatchIndex(0); // ✅ 每次新搜尋，指標回到第一筆
+              }}
             />
           </div>
 
           <div className={style.toolbarDivider} />
-
+          {/* ✅ Search Result Navigator */}
+          <SearchNavigator
+            matched={matchedBlockList}
+            index={matchIndex}
+            onPrev={() => {
+              if (!matchedBlockList || matchedBlockList.length === 0) return;
+              const next = Math.max(0, matchIndex - 1);
+              setMatchIndex(next);
+              ruleViewRef.current?.focusBlockById(matchedBlockList[next]);
+            }}
+            onNext={() => {
+              if (!matchedBlockList || matchedBlockList.length === 0) return;
+              const next = Math.min(matchedBlockList.length - 1, matchIndex + 1);
+              setMatchIndex(next);
+              ruleViewRef.current?.focusBlockById(matchedBlockList[next]);
+            }}
+            onPick={(i) => {
+              if (!matchedBlockList) return;
+              setMatchIndex(i);
+              ruleViewRef.current?.focusBlockById(matchedBlockList[i]);
+            }}
+          />
 
         </div>
 
         <div className={style.canvasWrapper}>
-          <RuleView rules={rules} matchedBlockIds={matchedBlockIds} />
+          <RuleView ref={ruleViewRef} rules={rules} matchedBlockIds={matchedBlockIds} />
         </div>
       </div>
     </>
@@ -200,7 +240,13 @@ type InspectorState = {
   y: number;
 };
 
-function RuleView({ rules, matchedBlockIds }: RuleViewProps) {
+import React, { forwardRef, useImperativeHandle } from "react";
+
+
+const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(function RuleView(
+  { rules, matchedBlockIds },
+  ref
+) {
   // 控制canvas
   const canvasStageRef = useRef<HTMLDivElement | null>(null); // 外框
   const canvasRef = useRef<HTMLCanvasElement | null>(null); // Canvas
@@ -569,6 +615,34 @@ function RuleView({ rules, matchedBlockIds }: RuleViewProps) {
     redraw(ctx, blocks);
   }, [blocks, redraw]);
 
+
+  // 在 RuleView 內（能拿到 blocks, viewRef, sizeRef, ctxRef, redraw 的位置）
+  const focusBlock = useCallback((b: Block) => {
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+
+    const view = viewRef.current;
+    const { w, h } = sizeRef.current;
+
+    const cx = b.x + b.w / 2;
+    const cy = b.y + b.h / 2;
+
+    view.translateX = w / 2 - cx * view.scale;
+    view.translateY = h / 2 - cy * view.scale;
+
+    redraw(ctx, blocks);
+  }, [blocks, redraw]);
+
+  const focusBlockById = useCallback((id: string) => {
+    const b = blocks.find(x => x.id === id);
+    if (!b) return;
+    focusBlock(b);
+  }, [blocks, focusBlock]);
+
+  useImperativeHandle(ref, () => ({
+    focusBlockById,
+  }), [focusBlockById]);
+
   return (
     <>
       <div ref={wrapperRef} className={style.canvasWrapper}>
@@ -612,11 +686,13 @@ function RuleView({ rules, matchedBlockIds }: RuleViewProps) {
     </>
 
   );
-}
+});
 // #endregion
 
 // #region Block
 // BLOCK 相關設定
+
+
 const block_size = 80;
 
 type BlockType = RuleData["BLOCK_TYPE"];
@@ -1546,7 +1622,7 @@ function matchRule(rule: RuleData, keyword: string): boolean {
 
 type RuleContentSearchProps = {
   rules: RuleData[];
-  onMatchChange: (matched: Set<string> | null) => void;
+  onMatchChange: (matched: string[] | null) => void;
 };
 
 function RuleContentSearch({ rules, onMatchChange }: RuleContentSearchProps) {
@@ -1559,11 +1635,10 @@ function RuleContentSearch({ rules, onMatchChange }: RuleContentSearchProps) {
       return;
     }
 
-    const matched = new Set(
-      rules
-        .filter((r: RuleData) => matchRule(r, kw))
-        .map((r: RuleData) => r.BLOCK_NAME)
-    );
+    const matched = rules
+      .filter((r) => matchRule(r, kw))
+      .sort((a, b) => Number(a.BLOCK_SEQ) - Number(b.BLOCK_SEQ))
+      .map((r) => r.BLOCK_NAME);
 
     onMatchChange(matched);
   }, [keyword, rules, onMatchChange]);
@@ -1584,6 +1659,43 @@ function RuleContentSearch({ rules, onMatchChange }: RuleContentSearchProps) {
       onSearch={handleSearch}   // Enter 或按鈕
       onClear={handleClear}
     />
+  );
+}
+
+// #endregion
+
+// #region Search Navigator
+
+type SearchNavigatorProps = {
+  matched: string[] | null;
+  index: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onPick: (i: number) => void;
+};
+
+function SearchNavigator({ matched, index, onPrev, onNext, onPick }: SearchNavigatorProps) {
+  const total = matched?.length ?? 0;
+  if (!matched || total === 0) return null;
+
+  return (
+    <div className={style.searchNav}>
+      <button onClick={onPrev} disabled={index <= 0}>⏮</button>
+      <span style={{ padding: "0 8px" }}>{index + 1} / {total}</span>
+      <button onClick={onNext} disabled={index >= total - 1}>⏭</button>
+
+      <select
+        value={index}
+        onChange={(e) => onPick(Number(e.target.value))}
+        style={{ marginLeft: 8, width: 220 }}
+      >
+        {matched.map((id, i) => (
+          <option key={id} value={i}>
+            {i + 1}. {id}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 
