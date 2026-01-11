@@ -24,6 +24,8 @@ async function loadRule(ruleName: string): Promise<RuleDTO[]> {
   }
 
   const data = (await res.json()) as RuleDTO[];
+
+  console.log(JSON.stringify(data, null,2));
   return data;
 }
 
@@ -69,6 +71,7 @@ type RuleData = {
 };
 
 // 判斷 Base Block Name（去掉陣列後綴）
+// TODO: 未來如果有需要可以改成更通用的方式
 function getBaseBlockName(blockName: string): string {
   const match = blockName.match(/^(.+?)\[\d+\]$/);
   return match ? match[1] : blockName;
@@ -134,8 +137,6 @@ export default function RuleViewer() {
   const [rules, setRules] = useState<RuleData[]>([]); // 被選擇rule的所有資料
 
   const [matchedBlockIds, setMatchedBlockIds] = useState<Set<string> | null>(null); // 符合搜尋的 Block Ids
-
-
 
   // effect 只在第一次 render 後讀取Rule Name
   useEffect(() => {
@@ -212,6 +213,8 @@ function RuleView({ rules, matchedBlockIds }: RuleViewProps) {
   const inspectedBlockIds = useMemo(() => {
     return new Set(inspectors.map(i => i.block.id));
   }, [inspectors]);
+
+
 
   // Canvas 視圖狀態（平移 / 縮放）
   const viewRef = useRef({
@@ -557,7 +560,6 @@ function RuleView({ rules, matchedBlockIds }: RuleViewProps) {
   return (
     <>
       <div ref={wrapperRef} className={style.canvasWrapper}>
-
         <div ref={canvasStageRef} className={style.canvasStage}>
           <canvas ref={canvasRef} />
 
@@ -643,7 +645,6 @@ function drawBlock(
   ctx.save();
 
   if (!isMatched) {
-    console.log("灰:", b.id);
     ctx.filter = "grayscale(1)";
   }
 
@@ -744,6 +745,7 @@ const BLOCK_IMAGE_SRC: Record<Block["type"], string> = {
   START: "/RuleViewerBlock/start.png",
   PROCESS: "/RuleViewerBlock/process.png",
   DECISION: "/RuleViewerBlock/decision.png",
+  FUNCTION: "/RuleViewerBlock/function.png",
   END: "/RuleViewerBlock/end.png",
 };
 
@@ -1045,6 +1047,8 @@ type BlockInspectorProps = {
   inspectorDraggingRef: React.MutableRefObject<boolean>;
 };
 
+
+
 function BlockInspector({
   block,
   initialX,
@@ -1054,7 +1058,7 @@ function BlockInspector({
   inspectorDraggingRef
 }: BlockInspectorProps) {
 
-  // false = 未收合（展開）
+  // 收合/展開
   const [collapsedMap, setCollapsedMap] = useState<Record<number, boolean>>({});
 
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -1074,6 +1078,19 @@ function BlockInspector({
     startW: 0,
     startH: 0,
   });
+
+
+  // 展開收合處理
+  function expandAll() {
+    setCollapsedMap({});
+  }
+  function collapseAll() {
+    const next: Record<number, boolean> = {};
+    block.raw.VALUES.forEach((_, idx) => {
+      next[idx] = true;
+    });
+    setCollapsedMap(next);
+  }
 
   useEffect(() => {
     const panel = panelRef.current;
@@ -1225,55 +1242,50 @@ function BlockInspector({
 
 
       {/* Main: Column / Value */}
-      <div className={style.section}>
-        <div className={style.sectionTitle}>Conditions</div>
+<div className={style.section}>
+  <div className={style.sectionHeader}>
+    <div className={style.sectionTitle}>Conditions</div>
 
-        {r.VALUES.map((v, idx) => {
-          const collapsed = collapsedMap[idx] ?? false; // false:預設展開, true:預設收合
+    <div className={style.sectionActions}>
+      <button onClick={expandAll}>全部展開</button>
+      <button onClick={collapseAll}>全部收合</button>
+    </div>
+  </div>
 
-          return (
-            <div key={idx} className={style.conditionCard}>
-              {/* ===== Header ===== */}
-              <div className={style.fieldHeader}>
-                <div className={style.fieldLabel}>
-                  Condition {idx + 1}
-                </div>
+  {r.VALUES.map((v, idx) => {
+    const collapsed = collapsedMap[idx] ?? false;
 
-                <button
-                  className={style.toggleBtn}
-                  onClick={() =>
-                    setCollapsedMap(prev => ({
-                      ...prev,
-                      [idx]: !collapsed,
-                    }))
-                  }
-                >
-                  {collapsed ? "展開" : "收合"}
-                </button>
-              </div>
+    return (
+      <div key={idx} className={style.conditionCard}>
+        <div className={style.fieldHeader}>
+          <div className={style.fieldLabel}>
+            Condition {idx + 1}
+          </div>
 
-              {/* ===== Content ===== */}
-              {!collapsed && (
-                <div className={style.conditionBody}>
-                  {v.COLUMN1 && (
-                    <div>
-                      <b>Column1:</b> {v.COLUMN1}
-                    </div>
-                  )}
-                  {v.COLUMN2 && (
-                    <div>
-                      <b>Column2:</b> {v.COLUMN2}
-                    </div>
-                  )}
-                  <pre className={style.codeBlock}>
-                    {v.VALUE}
-                  </pre>
-                </div>
-              )}
-            </div>
-          );
-        })}
+          <button
+            className={style.toggleBtn}
+            onClick={() =>
+              setCollapsedMap(prev => ({
+                ...prev,
+                [idx]: !collapsed,
+              }))
+            }
+          >
+            {collapsed ? "展開" : "收合"}
+          </button>
+        </div>
+
+        {!collapsed && (
+          <div className={style.conditionBody}>
+            {v.COLUMN1 && <div><b>Column1:</b> {v.COLUMN1}</div>}
+            {v.COLUMN2 && <div><b>Column2:</b> {v.COLUMN2}</div>}
+            <pre className={style.codeBlock}>{v.VALUE}</pre>
+          </div>
+        )}
       </div>
+    );
+  })}
+</div>
 
       <div
         className={style.resizeHandle}
