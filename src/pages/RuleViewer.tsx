@@ -47,10 +47,17 @@ type RuleDTO = {
   VALUE5: string | null;
 };
 
+type BlockValue = {
+  COLUMN1: string | null;
+  COLUMN2: string | null;
+  VALUE: string;
+};
+
+
 type RuleData = {
   PHASE: string;
   RULE_NAME: string;
-  BLOCK_NAME: string;
+  BLOCK_NAME: string;     // 合併後的 A
   BLOCK_TYPE: string;
   BLOCK_GROUP: string;
   BLOCK_SEQ: string;
@@ -58,12 +65,21 @@ type RuleData = {
   POSX: number;
   POSY: number;
   PRE_BLOCK: string[] | null;
-  COLUMN1: string | null;
-  COLUMN2: string | null;
-  VALUE: string | null;
+  VALUES: BlockValue[];   // ← 重點：集中存放
 };
+
+// 判斷 Base Block Name（去掉陣列後綴）
+function getBaseBlockName(blockName: string): string {
+  const match = blockName.match(/^(.+?)\[\d+\]$/);
+  return match ? match[1] : blockName;
+}
+
 function convertDtosToData(dtos: RuleDTO[]): RuleData[] {
-  return dtos.map(dto => {
+  const blockMap = new Map<string, RuleData>();
+
+  for (const dto of dtos) {
+    const baseName = getBaseBlockName(dto.BLOCK_NAME);
+
     const preBlock =
       dto.PRE_BLOCK && dto.PRE_BLOCK.trim() !== ""
         ? dto.PRE_BLOCK.split(",").map(s => s.trim())
@@ -75,24 +91,37 @@ function convertDtosToData(dtos: RuleDTO[]): RuleData[] {
       dto.VALUE3,
       dto.VALUE4,
       dto.VALUE5,
-    ].filter(v => v !== null && v.trim() !== "");
+    ].filter((v): v is string => v !== null && v.trim() !== "")
+      .join("");
 
-    return {
-      PHASE: dto.PHASE,
-      RULE_NAME: dto.RULE_NAME,
-      BLOCK_NAME: dto.BLOCK_NAME,
-      BLOCK_TYPE: dto.BLOCK_TYPE,
-      BLOCK_GROUP: dto.BLOCK_GROUP,
-      BLOCK_SEQ: dto.BLOCK_SEQ,
-      KEY: dto.KEY,
-      POSX: dto.POSX,
-      POSY: dto.POSY,
-      PRE_BLOCK: preBlock,
-      COLUMN1: dto.COLUMN1,
-      COLUMN2: dto.COLUMN2,
-      VALUE: values.length > 0 ? values.join("") : null,
-    };
-  });
+    // 尚未建立該 Block
+    if (!blockMap.has(baseName)) {
+      blockMap.set(baseName, {
+        PHASE: dto.PHASE,
+        RULE_NAME: dto.RULE_NAME,
+        BLOCK_NAME: baseName,
+        BLOCK_TYPE: dto.BLOCK_TYPE,
+        BLOCK_GROUP: dto.BLOCK_GROUP,
+        BLOCK_SEQ: dto.BLOCK_SEQ,
+        KEY: dto.KEY,
+        POSX: dto.POSX,
+        POSY: dto.POSY,
+        PRE_BLOCK: preBlock,
+        VALUES: [],
+      });
+    }
+
+    // 將 VALUE 推入集中陣列
+    if (values !== "") {
+      blockMap.get(baseName)!.VALUES.push({
+        COLUMN1: dto.COLUMN1,
+        COLUMN2: dto.COLUMN2,
+        VALUE: values,
+      });
+    }
+  }
+
+  return Array.from(blockMap.values());
 }
 
 
@@ -197,7 +226,7 @@ function RuleView({ rules, matchedBlockIds }: RuleViewProps) {
     lastX: 0,
     lastY: 0,
   });
-  
+
   // 使用 useCallback 固定 redraw 的函式 reference，避免每次 render 產生新函式
   const redraw = useCallback((
     ctx: CanvasRenderingContext2D,
@@ -406,13 +435,7 @@ function RuleView({ rules, matchedBlockIds }: RuleViewProps) {
         const hit = hitTestBlock(wx, wy, blocks);
 
         setHoveredBlock(hit);
-
-        const view = viewRef.current;
-
-        const sx = wx * view.scale + view.translateX;
-        const sy = wy * view.scale + view.translateY;
-
-        setMousePos({ x: sx, y: sy });
+        setMousePos({ x: mx, y: my });
       }
 
       dragRef.current.lastX = e.clientX;
@@ -909,8 +932,6 @@ function decideConnectionSides(
     return { fromSide: "top", toSide: "bottom" };
   }
 }
-
-
 // #endregion
 
 // #region Canvas
@@ -966,24 +987,22 @@ function BlockTooltip({ block, mousePos, canvasSize }: BlockTooltipProps) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-
     if (!ref.current || !mousePos) return;
 
-    const tooltipRect = ref.current.getBoundingClientRect();
+    const rect = ref.current.getBoundingClientRect();
 
     let x = mousePos.x + 12;
     let y = mousePos.y + 12;
 
-    // 核心：限制在 Canvas 內
-    if (x + tooltipRect.width > canvasSize.w) {
-      x = canvasSize.w - tooltipRect.width - 4;
+    if (x + rect.width > canvasSize.w) {
+      x = canvasSize.w - rect.width - 4;
     }
-    if (y + tooltipRect.height > canvasSize.h) {
-      y = canvasSize.h - tooltipRect.height - 4;
+    if (y + rect.height > canvasSize.h) {
+      y = canvasSize.h - rect.height - 4;
     }
 
-    if (x < 0) x = 4;
-    if (y < 0) y = 4;
+    if (x < 4) x = 4;
+    if (y < 4) y = 4;
 
     setPos({ x, y });
   }, [mousePos, canvasSize]);
@@ -997,55 +1016,26 @@ function BlockTooltip({ block, mousePos, canvasSize }: BlockTooltipProps) {
       ref={ref}
       className={style.tooltip}
       style={{
+        position: "absolute",
         left: pos?.x ?? -9999,
         top: pos?.y ?? -9999,
-        visibility: pos ? "visible" : "hidden",
+        pointerEvents: "none",
       }}
     >
-      {RULE_FIELDS.map(({ label, key }) => {
-        const value = r[key];
-        if (!value) return null;
-        return (
-          <div key={key}>
-            <b>{label}:</b> {String(value)}
-          </div>
-        );
-      })}
+      <div><b>Block:</b> {r.BLOCK_NAME}</div>
+      <div><b>Type:</b> {r.BLOCK_TYPE}</div>
+      {r.KEY && <div><b>Key:</b> {r.KEY}</div>}
+      <div>
+        <b>Conditions:</b> {r.VALUES.length}
+      </div>
     </div>
   );
 }
+
+
 // #endregion
 
 // #region Block Inspector
-
-type FieldDef = {
-  label: string;
-  key: keyof RuleData;
-};
-
-const RULE_FIELDS: FieldDef[] = [
-  { label: "Phase", key: "PHASE" },
-  { label: "Rule", key: "RULE_NAME" },
-  { label: "Block", key: "BLOCK_NAME" },
-  { label: "Type", key: "BLOCK_TYPE" },
-  { label: "Group", key: "BLOCK_GROUP" },
-  { label: "SEQ", key: "BLOCK_SEQ" },
-  { label: "Key", key: "KEY" },
-  { label: "Pre Block", key: "PRE_BLOCK" },
-  { label: "Column1", key: "COLUMN1" },
-  { label: "Column2", key: "COLUMN2" },
-  { label: "Value", key: "VALUE" },
-];
-type InspectorField = {
-  label: string;
-  key: keyof RuleData;
-};
-
-const INSPECTOR_FIELDS: InspectorField[] = [
-  { label: "Column1", key: "COLUMN1" },
-  { label: "Column2", key: "COLUMN2" },
-  { label: "Value", key: "VALUE" },
-];
 type BlockInspectorProps = {
   block: Block;
   initialX: number;
@@ -1054,12 +1044,6 @@ type BlockInspectorProps = {
   onClose: () => void;
   inspectorDraggingRef: React.MutableRefObject<boolean>;
 };
-
-const LONG_FIELDS = new Set<keyof RuleData>([
-  "COLUMN1",
-  "COLUMN2",
-  "VALUE",
-]);
 
 function BlockInspector({
   block,
@@ -1071,11 +1055,7 @@ function BlockInspector({
 }: BlockInspectorProps) {
 
   // false = 未收合（展開）
-  const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({
-    COLUMN1: true,
-    COLUMN2: true,
-    VALUE: true,
-  });
+  const [collapsedMap, setCollapsedMap] = useState<Record<number, boolean>>({});
 
   const panelRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef({
@@ -1163,10 +1143,6 @@ function BlockInspector({
 
       const rect = wrapper.getBoundingClientRect();
 
-      // 將目前滑鼠位置轉成 canvas 座標
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-
       /* ===== Resize 結束 ===== */
       if (resizeRef.current.resizing) {
         resizeRef.current.resizing = false;
@@ -1241,8 +1217,8 @@ function BlockInspector({
       <div className={style.section}>
         <div className={style.sectionTitle}>Meta</div>
         <div className={style.metaGrid}>
-          {/* <MetaItem label="Main:" value={r.PRE_BLOCK?.[0]} /> */}
-          {/*<MetaItem label="Sub:" value={r.PRE_BLOCK?.[1]} /> */}
+          {/*<MetaItem label="Main:" value={r.PRE_BLOCK?.[0]} />*/}
+          {/*<MetaItem label="Sub:" value={r.PRE_BLOCK?.[1]} />*/}
           <MetaItem label="Key:" value={r.KEY} />
         </div>
       </div>
@@ -1252,54 +1228,52 @@ function BlockInspector({
       <div className={style.section}>
         <div className={style.sectionTitle}>Conditions</div>
 
-        <div className={style.fieldList}>
-          {INSPECTOR_FIELDS.map(({ label, key }) => {
-            const value = r[key];
-            if (!value) return null;
+        {r.VALUES.map((v, idx) => {
+          const collapsed = collapsedMap[idx] ?? false; // false:預設展開, true:預設收合
 
-            const isLong = LONG_FIELDS.has(key);
-            const collapsed = collapsedMap[key];
-
-            return (
-              <div key={key} className={style.fieldBlock}>
-                {/* ===== Header：Label + Toggle ===== */}
-                <div className={style.fieldHeader}>
-                  <div className={style.fieldLabel}>{label}</div>
-
-                  {isLong && (
-                    <button
-                      className={style.toggleBtn}
-                      onClick={() =>
-                        setCollapsedMap(prev => ({
-                          ...prev,
-                          [key]: !prev[key],
-                        }))
-                      }
-                    >
-                      {collapsed ? "展開" : "收合"}
-                    </button>
-                  )}
+          return (
+            <div key={idx} className={style.conditionCard}>
+              {/* ===== Header ===== */}
+              <div className={style.fieldHeader}>
+                <div className={style.fieldLabel}>
+                  Condition {idx + 1}
                 </div>
 
-                {/* ===== Content ===== */}
-                {isLong ? (
-                  <pre
-                    className={`${style.codeBlock} ${collapsed ? style.collapsed : ""
-                      }`}
-                  >
-                    {String(value)}
-                  </pre>
-                ) : (
-                  <div className={style.fieldValue}>{String(value)}</div>
-                )}
+                <button
+                  className={style.toggleBtn}
+                  onClick={() =>
+                    setCollapsedMap(prev => ({
+                      ...prev,
+                      [idx]: !collapsed,
+                    }))
+                  }
+                >
+                  {collapsed ? "展開" : "收合"}
+                </button>
               </div>
-            );
-          })}
 
-        </div>
+              {/* ===== Content ===== */}
+              {!collapsed && (
+                <div className={style.conditionBody}>
+                  {v.COLUMN1 && (
+                    <div>
+                      <b>Column1:</b> {v.COLUMN1}
+                    </div>
+                  )}
+                  {v.COLUMN2 && (
+                    <div>
+                      <b>Column2:</b> {v.COLUMN2}
+                    </div>
+                  )}
+                  <pre className={style.codeBlock}>
+                    {v.VALUE}
+                  </pre>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
-
-
 
       <div
         className={style.resizeHandle}
@@ -1334,7 +1308,7 @@ function MetaItem({ label, value }: { label: string; value?: string | null }) {
 
 // #endregion
 
-// #region minimap
+// #region Minimap
 
 function getWorldBounds(blocks: Block[]) {
   const PADDING = 50; // world 單位
@@ -1522,16 +1496,17 @@ function RuleDropdownSearch({ options, onSelect }: DropdownProps) {
 // #endregion
 
 // #region Search only for Rule Content
-
 function matchRule(rule: RuleData, keyword: string): boolean {
   const kw = keyword.toLowerCase();
 
-  return (
-    rule.BLOCK_NAME.toLowerCase().includes(kw) ||
-    (rule.KEY !== null && rule.KEY.toLowerCase().includes(kw)) ||
-    (rule.COLUMN1 !== null && rule.COLUMN1.toLowerCase().includes(kw)) ||
-    (rule.COLUMN2 !== null && rule.COLUMN2.toLowerCase().includes(kw)) ||
-    (rule.VALUE !== null && rule.VALUE.toLowerCase().includes(kw))
+  if (rule.BLOCK_NAME.toLowerCase().includes(kw)) return true;
+  if (rule.KEY && rule.KEY.toLowerCase().includes(kw)) return true;
+
+  // 比對所有資料
+  return rule.VALUES.some(v =>
+    (v.COLUMN1 && v.COLUMN1.toLowerCase().includes(kw)) ||
+    (v.COLUMN2 && v.COLUMN2.toLowerCase().includes(kw)) ||
+    v.VALUE.toLowerCase().includes(kw)
   );
 }
 
@@ -1569,7 +1544,5 @@ function RuleContentSearch({ rules, onMatchChange }: RuleContentSearchProps) {
     />
   );
 }
-
-// #endregion
 
 // #endregion
