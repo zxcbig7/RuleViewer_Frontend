@@ -1,6 +1,14 @@
+
 /* ===============================
    Page / Canvas Layout
 ================================ */
+/* 整個 RuleViewer 撐滿頁面 */
+.ruleViewerRoot {
+  height: 70vh; /* 或 100% 也可以 */
+  display: flex;
+  flex-direction: column;
+}
+
 .canvasWrapper {
   position: relative;
   width: 100%;
@@ -14,7 +22,7 @@
   height: 100%;
 }
 
-/* ⭐ Canvas 一定要撐滿父層 */
+/* Canvas 一定要撐滿父層 */
 .canvasStage canvas {
   width: 100%;
   height: 100%;
@@ -26,7 +34,6 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  /* ⭐⭐⭐ 關鍵這一行 */
 }
 
 .tooltip {
@@ -40,12 +47,7 @@
   white-space: nowrap;
 }
 
-/* 整個 RuleViewer 撐滿頁面 */
-.ruleViewerRoot {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
+
 
 /* 上方搜尋列 */
 .toolbar {
@@ -55,7 +57,7 @@
 
 /* Canvas 區域吃掉剩下空間 */
 .canvasWrapper {
-  flex: 1;
+  flex: 1 1 auto;   /* 吃掉剩下所有高度 */
   position: relative;
   overflow: hidden;
 }
@@ -91,24 +93,12 @@
 /* ===============================
   Canvas
 ================================ */
-.canvas {
-  width: 100%;
-  height: 100%;
-  border: 1px solid #a0a0a0;
-  display: block;
-}
 
 
 /* ===============================
   Tooltip
 ================================ */
 
-.fieldList {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  row-gap: 6px;
-  column-gap: 8px;
-}
 
 .fieldLabel {
   font-weight: 600;
@@ -116,10 +106,6 @@
   white-space: nowrap;
 }
 
-.fieldValue {
-  color: #111827;
-  word-break: break-all;
-}
 
 /* ===============================
   minimap
@@ -238,12 +224,6 @@
   gap: 10px;
 }
 
-.fieldBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .fieldLabel {
   font-size: 12px;
   font-weight: 600;
@@ -271,13 +251,6 @@
 .sectionActions button {
   font-size: 12px;
   padding: 2px 6px;
-}
-
-/* 長內容容器 */
-.valueWrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 /* Meta 用 */
@@ -351,11 +324,6 @@
   padding: 12px;
 }
 
-/* 收合狀態 */
-.collapsed {
-  max-height: 3.6em; /* 約 2 行 */
-  overflow: hidden;
-}
 
 .toggleBtn {
   font-size: 11px;

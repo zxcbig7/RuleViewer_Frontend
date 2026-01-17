@@ -3,8 +3,18 @@ import style from '../css/RuleViewer/RuleViewer.module.css'
 import { Input } from 'antd';
 
 // #region Data Process
+
+const API_BASE = "https://localhost:7215";
+const CID = "ruleviewer-frontend";
+
 async function loadRules(): Promise<string[]> {
-  const res = await fetch("https://localhost:7215/api/RuleViewer/names");
+  const res = await fetch(`${API_BASE}/api/RuleViewer/names`,
+    {
+      headers: {
+        "CID": CID,
+      }
+    }
+  );
 
   if (!res.ok) {
     throw new Error(`loadRules failed: ${res.status}`);
@@ -17,7 +27,14 @@ async function loadRules(): Promise<string[]> {
 async function loadRule(ruleName: string): Promise<RuleDTO[]> {
 
   // encodeURIComponent 防止 ruleName 有空白、斜線、特殊字元直接炸掉
-  const res = await fetch(`https://localhost:7215/api/RuleViewer/${encodeURIComponent(ruleName)}`);
+  const res = await fetch(
+    `${API_BASE}/api/RuleViewer/${encodeURIComponent(ruleName)}`,
+    {
+      headers: {
+        "CID": CID,
+      },
+    }
+  );
 
   if (!res.ok) {
     throw new Error(`loadRules failed: ${res.status}`);
@@ -85,7 +102,7 @@ function convertDtosToData(dtos: RuleDTO[]): RuleData[] {
 
     const preBlock =
       dto.PRE_BLOCK && dto.PRE_BLOCK.trim() !== ""
-        ? dto.PRE_BLOCK.split(",").map(s => s.trim())
+        ? dto.PRE_BLOCK.split(",").map(s => getBaseBlockName(s.trim())) // 只取 Base Name
         : null;
 
     const values = [
