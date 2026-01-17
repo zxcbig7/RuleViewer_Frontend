@@ -11,7 +11,7 @@ import { Breadcrumb, Layout, Menu, theme } from 'antd';
 
 import RuleViewer from '../pages/RuleViewer';
 
-const { Header, Content, Footer, Sider } = Layout;
+const { Header, Content, Sider } = Layout;
 
 type MenuItem = Required<MenuProps>['items'][number];
 

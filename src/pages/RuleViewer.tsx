@@ -4,11 +4,12 @@ import { Input } from 'antd';
 
 // #region Data Process
 
-const API_BASE = "https://localhost:7215";
+//const API_BASE = "https://api.ruleviewer.local";
 const CID = "ruleviewer-frontend";
 
 async function loadRules(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/api/RuleViewer/names`,
+  //const res = await fetch(`${API_BASE}/api/RuleViewer/names`,
+  const res = await fetch(`/api/RuleViewer/names`,
     {
       headers: {
         "CID": CID,
@@ -28,7 +29,8 @@ async function loadRule(ruleName: string): Promise<RuleDTO[]> {
 
   // encodeURIComponent 防止 ruleName 有空白、斜線、特殊字元直接炸掉
   const res = await fetch(
-    `${API_BASE}/api/RuleViewer/${encodeURIComponent(ruleName)}`,
+    //`${API_BASE}/api/RuleViewer/${encodeURIComponent(ruleName)}`,
+    `/api/RuleViewer/${encodeURIComponent(ruleName)}`,
     {
       headers: {
         "CID": CID,
@@ -1258,7 +1260,7 @@ function BlockInspector({
       panel.style.transform = `translate(${x}px, ${y}px)`;
     }
 
-    function onMouseUp(e: MouseEvent) {
+    function onMouseUp() {
       const panel = panelRef.current;
       const wrapper = wrapperRef.current;
       if (!panel || !wrapper) return;
