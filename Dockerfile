@@ -14,20 +14,14 @@ RUN npm run build
 
 
 # ===============================
-# Runtime stage (Nginx)
+# Runtime stage (Static server only)
 # ===============================
 FROM nginx:alpine
 
-# 移除預設設定
-RUN rm /etc/nginx/conf.d/default.conf
+# 不放任何自訂 nginx.conf
+# 使用官方預設設定，單純 serve 靜態檔案
 
-# 複製自訂 Nginx 設定
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# 複製 build 結果
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# 對外開放 80
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]

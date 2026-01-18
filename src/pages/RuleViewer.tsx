@@ -4,12 +4,11 @@ import { Input } from 'antd';
 
 // #region Data Process
 
-//const API_BASE = "https://api.ruleviewer.local";
+const API_BASE = import.meta.env.VITE_API_BASE;
 const CID = "ruleviewer-frontend";
 
 async function loadRules(): Promise<string[]> {
-  //const res = await fetch(`${API_BASE}/api/RuleViewer/names`,
-  const res = await fetch(`/api/RuleViewer/names`,
+  const res = await fetch(`${API_BASE}/api/RuleViewer/names`,
     {
       headers: {
         "CID": CID,
@@ -29,8 +28,7 @@ async function loadRule(ruleName: string): Promise<RuleDTO[]> {
 
   // encodeURIComponent 防止 ruleName 有空白、斜線、特殊字元直接炸掉
   const res = await fetch(
-    //`${API_BASE}/api/RuleViewer/${encodeURIComponent(ruleName)}`,
-    `/api/RuleViewer/${encodeURIComponent(ruleName)}`,
+    `${API_BASE}/api/RuleViewer/${encodeURIComponent(ruleName)}`,
     {
       headers: {
         "CID": CID,
@@ -44,7 +42,6 @@ async function loadRule(ruleName: string): Promise<RuleDTO[]> {
 
   const data = (await res.json()) as RuleDTO[];
 
-  console.log(JSON.stringify(data, null, 2));
   return data;
 }
 
