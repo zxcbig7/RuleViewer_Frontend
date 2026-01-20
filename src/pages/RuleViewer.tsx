@@ -749,7 +749,7 @@ function drawBlock(
   ctx.save();
 
   if (!isMatched) {
-    ctx.filter = "grayscale(1)";
+    ctx.globalAlpha = 0.4;
   }
 
   // 先畫白底
