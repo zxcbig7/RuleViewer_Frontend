@@ -288,8 +288,6 @@ const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(function RuleView(
     return new Set(inspectors.map(i => i.block.id));
   }, [inspectors]);
 
-
-
   // Canvas 視圖狀態（平移 / 縮放）
   const viewRef = useRef({
     translateX: 0,

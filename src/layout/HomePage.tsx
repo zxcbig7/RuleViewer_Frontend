@@ -1,71 +1,102 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   DesktopOutlined,
   FileOutlined,
   PieChartOutlined,
   TeamOutlined,
   UserOutlined,
-} from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-import { Breadcrumb, Layout, Menu, theme } from 'antd';
-
-import RuleViewer from '../pages/RuleViewer';
+} from "@ant-design/icons";
+import type { MenuProps } from "antd";
+import { Breadcrumb, Layout, Menu, theme } from "antd";
 
 const { Header, Content, Sider } = Layout;
 
-type MenuItem = Required<MenuProps>['items'][number];
+type MenuItem = Required<MenuProps>["items"][number];
 
 function getItem(
   label: React.ReactNode,
   key: React.Key,
   icon?: React.ReactNode,
-  children?: MenuItem[],
+  children?: MenuItem[]
 ): MenuItem {
-  return {
-    key,
-    icon,
-    children,
-    label,
-  } as MenuItem;
+  return { key, icon, children, label } as MenuItem;
 }
 
 const items: MenuItem[] = [
-  getItem('Option 1', '1', <PieChartOutlined />),
-  getItem('Option 2', '2', <DesktopOutlined />),
-  getItem('User', 'sub1', <UserOutlined />, [
-    getItem('Tom', '3'),
-    getItem('Bill', '4'),
-    getItem('Alex', '5'),
+  getItem("Dashboard", "/dashboard", <PieChartOutlined />),
+  getItem("Rule Viewer", "/ruleviewer", <DesktopOutlined />),
+
+  getItem("Test Page", "/test", <DesktopOutlined />),
+
+  // 父節點建議不要導頁，用 sub key
+  getItem("User", "/user", <UserOutlined />, [
+    getItem("Tom", "/user/tom"),
+    getItem("Bill", "/user/bill"),
+    getItem("Alex", "/user/alex"),
   ]),
-  getItem('Team', 'sub2', <TeamOutlined />, [getItem('Team 1', '6'), getItem('Team 2', '8')]),
-  getItem('Files', '9', <FileOutlined />),
+  getItem("Team", "/team", <TeamOutlined />, [
+    getItem("Team 1", "/team/1"),
+    getItem("Team 2", "/team/2"),
+  ]),
+
+  getItem("Files", "/files", <FileOutlined />),
 ];
 
-const HomePage2: React.FC = () => {
+const HomePage: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
+  const selectedKeys = useMemo(() => [location.pathname], [location.pathname]);
+
+  const handleMenuClick: MenuProps["onClick"] = (e) => {
+    const key = String(e.key);
+    // 只有 / 開頭的才當路由導頁，sub-menu 的 key 不導頁
+    if (key.startsWith("/")) navigate(key);
+  };
+
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
+    <Layout style={{ minHeight: "100vh" }}>
+      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
         <div className="demo-logo-vertical" />
-        <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={items} />
+        <Menu
+          theme="dark"
+          mode="inline"
+          items={items}
+          selectedKeys={selectedKeys}
+          onClick={handleMenuClick}
+        />
       </Sider>
-      <Layout>
-        <Header style={{ padding: 0, background: colorBgContainer }} />
-        <Content style={{ margin: '0 16px' }}>
-          <Breadcrumb style={{ margin: '16px 0' }} items={[{ title: 'User' }, { title: 'Bill' }]} />
+
+      <Layout style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+        {/*<Header style={{ padding: 0, background: colorBgContainer }} />*/}
+        <Content
+          style={{
+            margin: 0,
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            padding: 16, // ✅ 改成內距
+          }}>
+          <Breadcrumb style={{ margin: "0 0 16px 0" }} />
           <div
             style={{
+              flex: 1,
+              minHeight: 0,
               padding: 24,
-              minHeight: 360,
               background: colorBgContainer,
               borderRadius: borderRadiusLG,
+              overflow: "auto",
             }}
           >
-            <RuleViewer />
+            <Outlet /> {/* 右邊內容由 App.tsx 的子路由決定 */}
           </div>
         </Content>
       </Layout>
@@ -73,4 +104,4 @@ const HomePage2: React.FC = () => {
   );
 };
 
-export default HomePage2;
+export default HomePage;
