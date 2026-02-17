@@ -258,7 +258,6 @@ type InspectorState = {
 
 import React, { forwardRef, useImperativeHandle } from "react";
 
-
 const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(function RuleView(
   { rules, matchedBlockIds },
   ref

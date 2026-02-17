@@ -85,7 +85,7 @@ const HomePage: React.FC = () => {
             flexDirection: "column",
             padding: 16, // ✅ 改成內距
           }}>
-          <Breadcrumb style={{ margin: "0 0 16px 0" }} />
+          <Breadcrumb style={{ margin: "0 0 0px 0" }} /> {/* 麵包屑導覽：顯示「目前頁面在網站階層中的位置」 */}
           <div
             style={{
               flex: 1,
