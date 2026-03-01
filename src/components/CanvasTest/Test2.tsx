@@ -9,7 +9,7 @@ const { Text } = Typography;
 type Mode = "View" | "Trace" | "Explain";
 type DetailTab = "summary" | "condition" | "context" | "path";
 
-const Test2: React.FC = () => {
+const RuleViewerNew: React.FC = () => {
   // ===== Analysis input =====
   const [ruleName, setRuleName] = useState<string>("");
   const [searchInput, setSearchInput] = useState<string>("");
@@ -249,7 +249,7 @@ const Test2: React.FC = () => {
   );
 };
 
-export default Test2;
+export default RuleViewerNew;
 
 const SummaryView: React.FC<{
   ruleName: string;

@@ -31,22 +31,15 @@ const items: MenuItem[] = [
   getItem("Dashboard", "/dashboard", <PieChartOutlined />),
   getItem("Rule Viewer", "/ruleviewer", <DesktopOutlined />),
 
-  getItem("Test Page", "/test", <DesktopOutlined />),
-  getItem("Test Page2", "/test2", <DesktopOutlined />),
   getItem("Sudoku Solver", "/sudoku", <ImCalculator />),
 
   // 父節點建議不要導頁，用 sub key
-  getItem("User", "/user", <UserOutlined />, [
-    getItem("Tom", "/user/tom"),
-    getItem("Bill", "/user/bill"),
-    getItem("Alex", "/user/alex"),
+  getItem("Rule Viewer", "", <DesktopOutlined />, [
+    getItem("Main Page", "/ruleviewer/main"),
+    getItem("Layout", "/ruleviewer/test1"),
+    getItem("Canvas", "/ruleviewer/test2"),
+    getItem("Block Info", "/ruleviewer/test3"),
   ]),
-  getItem("Team", "/team", <TeamOutlined />, [
-    getItem("Team 1", "/team/1"),
-    getItem("Team 2", "/team/2"),
-  ]),
-
-  getItem("Files", "/files", <FileOutlined />),
 ];
 
 const HomePage = () => {
