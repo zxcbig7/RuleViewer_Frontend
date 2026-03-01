@@ -6,15 +6,12 @@ import { ImCalculator } from "react-icons/im";
 
 import {
   DesktopOutlined,
-  FileOutlined,
   PieChartOutlined,
-  TeamOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Breadcrumb, Layout, Menu, theme } from "antd";
 
-const { Header, Content, Sider } = Layout;
+const { Content, Sider } = Layout;
 
 type MenuItem = Required<MenuProps>["items"][number];
 

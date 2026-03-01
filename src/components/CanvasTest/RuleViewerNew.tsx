@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, Divider, Input, Segmented, Space, Switch, Tabs, Typography, Badge } from "antd";
 import { PlayCircleOutlined, SearchOutlined, InfoCircleOutlined } from "@ant-design/icons";
 
@@ -9,7 +9,7 @@ const { Text } = Typography;
 type Mode = "View" | "Trace" | "Explain";
 type DetailTab = "summary" | "condition" | "context" | "path";
 
-const RuleViewerNew: React.FC = () => {
+function RuleViewerNew() {
   // ===== Analysis input =====
   const [ruleName, setRuleName] = useState<string>("");
   const [searchInput, setSearchInput] = useState<string>("");
@@ -44,22 +44,13 @@ const RuleViewerNew: React.FC = () => {
     setDetailTab("condition");
     setSelectedNodeId("Decision Node C");
   };
-  
+
   // 注意：HomePage 內層 container 已經有 padding + scroll
   // 這裡用 flex 撐滿即可
   return (
-    <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="h-full min-h-0 flex flex-col gap-3">
       {/* ===== Top Bar 1: 分析入口 ===== */}
-      <div
-        style={{
-          borderRadius: 12,
-          padding: 12,
-          background: "#1f2a44",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
+      <div className="rounded-xl p-3 bg-[#1f2a44] flex items-center gap-2.5">
         <Input
           prefix={<SearchOutlined />}
           value={ruleName}
@@ -83,40 +74,31 @@ const RuleViewerNew: React.FC = () => {
           Run Analysis
         </Button>
 
-        <div style={{ marginLeft: "auto" }}>
+        <div className="ml-auto">
           <Button icon={<InfoCircleOutlined />}>Information</Button>
         </div>
       </div>
 
       {/* ===== Top Bar 2: Toggles + Mode ===== */}
-      <div
-        style={{
-          borderRadius: 12,
-          padding: 12,
-          background: "#0f1629",
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-        }}
-      >
+      <div className="rounded-xl p-3 bg-[#0f1629] flex items-center gap-4">
         <Space size={16}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label className="flex items-center gap-2">
             <Switch checked={showMiniMap} onChange={setShowMiniMap} />
-            <span style={{ color: "#cfd6e6" }}>Show Mini Map</span>
+            <span className="text-[#cfd6e6]">Show Mini Map</span>
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label className="flex items-center gap-2">
             <Switch checked={showSkipped} onChange={setShowSkipped} />
-            <span style={{ color: "#cfd6e6" }}>Show Skipped Nodes</span>
+            <span className="text-[#cfd6e6]">Show Skipped Nodes</span>
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label className="flex items-center gap-2">
             <Switch checked={showConditionValues} onChange={setShowConditionValues} />
-            <span style={{ color: "#cfd6e6" }}>Show Conditional Values</span>
+            <span className="text-[#cfd6e6]">Show Conditional Values</span>
           </label>
         </Space>
 
-        <div style={{ marginLeft: "auto" }}>
+        <div className="ml-auto">
           <Segmented<Mode>
             options={["View", "Trace", "Explain"]}
             value={mode}
@@ -126,82 +108,41 @@ const RuleViewerNew: React.FC = () => {
       </div>
 
       {/* ===== Body: Canvas + Right Detail ===== */}
-      <div style={{ flex: 1, minHeight: 0, display: "flex", gap: 12 }}>
+      <div className="flex-1 min-h-0 flex gap-3">
         {/* Canvas area */}
         <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            borderRadius: 12,
-            background: "#ffffff",
-            border: "1px solid rgba(0,0,0,0.12)",
-            position: "relative",
-            overflow: "hidden",
-          }}
+          className="flex-1 min-w-0 rounded-xl bg-white border border-black/[.12] relative overflow-hidden"
           onClick={() => setSelectedNodeId("Decision Node C")}
         >
-          <div style={{ position: "absolute", top: 10, left: 12, color: "#cfd6e6", fontWeight: 600 }}>
+          <div className="absolute top-2.5 left-3 text-[#cfd6e6] font-semibold">
             Rule Viewer Canvas（{mode}）
           </div>
 
-          <div
-            style={{
-              height: "100%",
-              display: "grid",
-              placeItems: "center",
-              color: "rgba(255,255,255,0.45)",
-              fontSize: 22,
-            }}
-          >
+          <div className="h-full grid place-items-center text-white/45 text-[22px]">
             <BasicCanvas />
           </div>
 
           {/* MiniMap placeholder */}
           {showMiniMap && (
-            <div
-              style={{
-                position: "absolute",
-                right: 16,
-                bottom: 16,
-                width: 180,
-                height: 120,
-                borderRadius: 10,
-                background: "rgb(255, 255, 255)",
-                border: "1px solid rgba(255,255,255,0.12)",
-              }}
-            >
-              <div style={{ padding: 8, color: "#cfd6e6", fontSize: 12 }}>Mini Map</div>
+            <div className="absolute right-4 bottom-4 w-[180px] h-[120px] rounded-[10px] bg-white border border-white/[.12]">
+              <div className="p-2 text-[#cfd6e6] text-xs">Mini Map</div>
             </div>
           )}
         </div>
 
         {/* Right panel */}
-        <div
-          style={{
-            width: 420,
-            minWidth: 420,
-            borderRadius: 12,
-            background: "#0e1428",
-            border: "1px solid rgba(0,0,0,0.12)",
-            padding: 12,
-            color: "#fff",
-            display: "flex",
-            flexDirection: "column",
-            minHeight: 0,
-          }}
-        >
+        <div className="w-[420px] min-w-[420px] rounded-xl bg-[#0e1428] border border-black/[.12] p-3 text-white flex flex-col min-h-0">
           {/* header */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="flex items-center justify-between">
             <Text style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>Detail Panel</Text>
-            <Badge status={modeBadgeStatus} text={<span style={{ color: "#cfd6e6" }}>{mode}</span>} />
+            <Badge status={modeBadgeStatus} text={<span className="text-[#cfd6e6]">{mode}</span>} />
           </div>
 
           <Divider style={{ borderColor: "rgba(255,255,255,0.1)", margin: "10px 0" }} />
 
-          <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+          <div className="flex-1 min-h-0 overflow-auto">
             <Tabs
-              activeKey={detailTab}
-              onChange={(k) => setDetailTab(k as DetailTab)}
+              activeKey={detailTab} onChange={(k) => setDetailTab(k as DetailTab)}
               items={[
                 {
                   key: "summary",
@@ -251,13 +192,13 @@ const RuleViewerNew: React.FC = () => {
 
 export default RuleViewerNew;
 
-const SummaryView: React.FC<{
+function SummaryView({ ruleName, searchInput, selectedNodeId }: {
   ruleName: string;
   searchInput: string;
   selectedNodeId: string;
-}> = ({ ruleName, searchInput, selectedNodeId }) => {
+}) {
   return (
-    <div style={{ color: "#cfd6e6", lineHeight: 1.8 }}>
+    <div className="text-[#cfd6e6] leading-[1.8]">
       <div>
         <Text style={{ color: "#fff" }}>Rule Name</Text>: {ruleName || "-"}
       </div>
@@ -272,72 +213,48 @@ const SummaryView: React.FC<{
         <Text style={{ color: "#fff" }}>Selected Node</Text>: {selectedNodeId}
       </div>
 
-      <div style={{ marginTop: 8 }}>
+      <div className="mt-2">
         <Text style={{ color: "#fff" }}>Hint</Text>: Trace/Explain 模式下，點 Timeline 或 Canvas 節點會更新右側內容。
       </div>
     </div>
   );
 };
 
-const ConditionView: React.FC<{
+function ConditionView({ selectedNodeId, showConditionValues }: {
   selectedNodeId: string;
   showConditionValues: boolean;
-}> = ({ selectedNodeId, showConditionValues }) => {
-  return (
-    <div style={{ color: "#cfd6e6" }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 8 }}>
-        {selectedNodeId}
-      </div>
+}) {
+  const boxCls = "mt-1.5 p-2.5 rounded-[10px] bg-white/[.06] border border-white/10";
 
-      <div style={{ marginBottom: 8 }}>
+  return (
+    <div className="text-[#cfd6e6]">
+      <div className="text-[15px] font-bold text-white mb-2">{selectedNodeId}</div>
+
+      <div className="mb-2">
         <Text style={{ color: "#fff" }}>Condition Expression</Text>
-        <div
-          style={{
-            marginTop: 6,
-            padding: 10,
-            borderRadius: 10,
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.10)",
-          }}
-        >
+        <div className={boxCls}>
           TotalWIPCount(EquipGroup_ABC) ≥ MaxWIPLimit(EquipGroup_ABC)
         </div>
       </div>
 
       {showConditionValues && (
         <>
-          <div style={{ marginTop: 12 }}>
+          <div className="mt-3">
             <Text style={{ color: "#fff" }}>Runtime Values</Text>
-            <div
-              style={{
-                marginTop: 6,
-                padding: 10,
-                borderRadius: 10,
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.10)",
-              }}
-            >
+            <div className={boxCls}>
               <div>
-                Total WIP Count (EquipGroup_ABC) = <b style={{ color: "#fff" }}>13</b>
+                Total WIP Count (EquipGroup_ABC) = <b className="text-white">13</b>
               </div>
               <div>
-                Max WIP Limit (EquipGroup_ABC) = <b style={{ color: "#fff" }}>10</b>
+                Max WIP Limit (EquipGroup_ABC) = <b className="text-white">10</b>
               </div>
             </div>
           </div>
 
-          <div style={{ marginTop: 12 }}>
+          <div className="mt-3">
             <Text style={{ color: "#fff" }}>Evaluation Result</Text>
-            <div
-              style={{
-                marginTop: 6,
-                padding: 10,
-                borderRadius: 10,
-                background: "rgba(255,77,79,0.12)",
-                border: "1px solid rgba(255,77,79,0.25)",
-              }}
-            >
-              <b style={{ color: "#ff4d4f" }}>13 ≥ 10 → FALSE</b>
+            <div className="mt-1.5 p-2.5 rounded-[10px] bg-[#ff4d4f]/[.12] border border-[#ff4d4f]/25">
+              <b className="text-[#ff4d4f]">13 ≥ 10 → FALSE</b>
             </div>
           </div>
         </>
@@ -346,9 +263,9 @@ const ConditionView: React.FC<{
   );
 };
 
-const ContextView: React.FC<{ lotId: string }> = ({ lotId }) => {
+function ContextView({ lotId }: { lotId: string }) {
   return (
-    <div style={{ color: "#cfd6e6", lineHeight: 1.8 }}>
+    <div className="text-[#cfd6e6] leading-[1.8]">
       <div>
         <Text style={{ color: "#fff" }}>Lot</Text>: {lotId || "-"}
       </div>
@@ -366,11 +283,11 @@ const ContextView: React.FC<{ lotId: string }> = ({ lotId }) => {
   );
 };
 
-const PathView: React.FC<{
+function PathView({ activeNodeId, showSkipped, onSelectNode }: {
   activeNodeId: string;
   showSkipped: boolean;
   onSelectNode: (id: string) => void;
-}> = ({ activeNodeId, showSkipped, onSelectNode }) => {
+}) {
   const steps = [
     { id: "BEGIN", label: "BEGIN", status: "PASS" as const },
     { id: "Rule A", label: "Rule A", status: "PASS" as const },
@@ -388,28 +305,26 @@ const PathView: React.FC<{
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="flex flex-col gap-2">
       {steps.map((s, idx) => {
         const active = s.id === activeNodeId;
         return (
           <button
             key={s.id}
             onClick={() => onSelectNode(s.id)}
-            style={{
-              textAlign: "left",
-              padding: "10px 12px",
-              borderRadius: 10,
-              border: active ? "1px solid rgba(82,196,26,0.5)" : "1px solid rgba(255,255,255,0.10)",
-              background: active ? "rgba(82,196,26,0.12)" : "rgba(255,255,255,0.04)",
-              color: "#cfd6e6",
-              cursor: "pointer",
-            }}
+            className={`text-left px-3 py-2.5 rounded-[10px] border text-[#cfd6e6] cursor-pointer ${
+              active
+                ? "border-[#52c41a]/50 bg-[#52c41a]/[.12]"
+                : "border-white/10 bg-white/[.04]"
+            }`}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div className="flex items-center justify-between">
               <div>
-                <b style={{ color: "#fff" }}>{idx + 1}.</b> {s.label}
+                <b className="text-white">{idx + 1}.</b> {s.label}
               </div>
-              <span style={{ color: statusColor(s.status), fontWeight: 700 }}>{s.status}</span>
+              <span style={{ color: statusColor(s.status) }} className="font-bold">
+                {s.status}
+              </span>
             </div>
           </button>
         );

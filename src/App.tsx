@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./layout/HomePage";
 import RuleViewer from "./pages/RuleViewer";
 import BasicCanvas from "./components/CanvasTest/BasicCanvas";
-import RuleViewerNew from "./components/CanvasTest/Test2";
+import RuleViewerNew from "./components/CanvasTest/RuleViewerNew";
 import SudokuSolver from "./components/Sudoku/SudokuSolver";
 import ErrorPage from "./pages/defaultErrorPage";
 
@@ -21,12 +21,14 @@ function App() {
         {/* Rule Viewer Pages */}
         <Route path="ruleviewer" element={<RuleViewer />} />
         <Route path="ruleviewer/main" element={<RuleViewerNew />} />
+        <Route path="ruleviewer/test1" element={<BasicCanvas />} />
         <Route path="ruleviewer/test2" element={<BasicCanvas />} />
+        <Route path="ruleviewer/test3" element={<BasicCanvas />} />
 
         {/* Sudoku Pages */}
         <Route path="sudoku" element={<SudokuSolver />} />
 
-        {/* Sudoku Pages */}
+        {/* Error Pages */}
         <Route path="*" element={<ErrorPage statusCode={404} />} />
       </Route>
     </Routes>
