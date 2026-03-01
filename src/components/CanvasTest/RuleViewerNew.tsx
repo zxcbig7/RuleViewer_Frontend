@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Button, Divider, Input, Segmented, Space, Switch, Tabs, Typography, Badge } from "antd";
 import { PlayCircleOutlined, SearchOutlined, InfoCircleOutlined } from "@ant-design/icons";
 
-import BasicCanvas from "./BasicCanvas";
+import CanvasComponent from "./BasicCanvas";
 
 const { Text } = Typography;
 
@@ -119,7 +119,7 @@ function RuleViewerNew() {
           </div>
 
           <div className="h-full grid place-items-center text-white/45 text-[22px]">
-            <BasicCanvas />
+            <CanvasComponent />
           </div>
 
           {/* MiniMap placeholder */}

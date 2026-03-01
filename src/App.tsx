@@ -1,8 +1,13 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./layout/HomePage";
 import RuleViewer from "./pages/RuleViewer";
-import BasicCanvas from "./components/CanvasTest/BasicCanvas";
+import CanvasComponent from "./components/CanvasTest/BasicCanvas";
 import RuleViewerNew from "./components/CanvasTest/RuleViewerNew";
+
+
+import RuleViewerLayout from "./components/RuleViewer/Layout";
+
+
 import SudokuSolver from "./components/Sudoku/SudokuSolver";
 import ErrorPage from "./pages/defaultErrorPage";
 
@@ -12,6 +17,7 @@ function App() {
     <Routes>
       {/* HomePage 永遠存在 */}
       <Route path="/" element={<HomePage />}>
+
         {/* 預設進來導到 dashboard（可選） */}
         <Route index element={<Navigate to="dashboard" replace />} />
 
@@ -20,10 +26,12 @@ function App() {
 
         {/* Rule Viewer Pages */}
         <Route path="ruleviewer" element={<RuleViewer />} />
+
+        {/* Rule Viewer New Pages */}
         <Route path="ruleviewer/main" element={<RuleViewerNew />} />
-        <Route path="ruleviewer/test1" element={<BasicCanvas />} />
-        <Route path="ruleviewer/test2" element={<BasicCanvas />} />
-        <Route path="ruleviewer/test3" element={<BasicCanvas />} />
+        <Route path="ruleviewer/test1" element={<RuleViewerLayout />} />
+        <Route path="ruleviewer/test2" element={<CanvasComponent />} />
+        <Route path="ruleviewer/test3" element={<CanvasComponent />} />
 
         {/* Sudoku Pages */}
         <Route path="sudoku" element={<SudokuSolver />} />

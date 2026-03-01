@@ -9,7 +9,7 @@ import {
   PieChartOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Breadcrumb, Layout, Menu, theme } from "antd";
+import { Layout, Menu, theme } from "antd";
 
 const { Content, Sider } = Layout;
 
@@ -32,10 +32,10 @@ const items: MenuItem[] = [
 
   // 父節點建議不要導頁，用 sub key
   getItem("Rule Viewer", "", <DesktopOutlined />, [
-    getItem("Main Page", "/ruleviewer/main"),
-    getItem("Layout", "/ruleviewer/test1"),
-    getItem("Canvas", "/ruleviewer/test2"),
-    getItem("Block Info", "/ruleviewer/test3"),
+    getItem("Main Page", "/ruleviewer/main", <DesktopOutlined />),
+    getItem("Layout", "/ruleviewer/test1", <DesktopOutlined />),
+    getItem("Canvas", "/ruleviewer/test2", <DesktopOutlined />),
+    getItem("Block Info", "/ruleviewer/test3", <DesktopOutlined />),
   ]),
 ];
 
@@ -71,31 +71,30 @@ const HomePage = () => {
 
       <Layout style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
         {/*<Header style={{ padding: 0, background: colorBgContainer }} />*/}
-        <Content
-          style={{
-            margin: 0,
+        <Content style={{
+          margin: 0,
+          flex: 1,
+          minHeight: 0,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          padding: 0, // ✅ 改成內距
+        }}>
+           {/*<Breadcrumb style={{ margin: "0 0 0px 0" }} /> 麵包屑導覽：顯示「目前頁面在網站階層中的位置」 */}
+          <div style={{
             flex: 1,
             minHeight: 0,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            padding: 16, // ✅ 改成內距
-          }}>
-          <Breadcrumb style={{ margin: "0 0 0px 0" }} /> {/* 麵包屑導覽：顯示「目前頁面在網站階層中的位置」 */}
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              padding: 24,
-              background: colorBgContainer,
-              borderRadius: borderRadiusLG,
-              overflow: "auto",
-            }}
+            padding: 0,
+            background: colorBgContainer,
+            borderRadius: borderRadiusLG,
+            overflow: "auto",
+          }}
           >
-            <Outlet /> {/* 右邊內容由 App.tsx 的子路由決定 */}
+            <Outlet /> {/* 內容由 App.tsx 的子路由決定，若無此，子路由的內容無處顯示。 */}
           </div>
         </Content>
       </Layout>
+
     </Layout>
   );
 };

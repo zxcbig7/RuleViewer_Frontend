@@ -33,7 +33,7 @@ type BlcokInfo = {
   VALUES: BlockValue[] | null;   // 集中存放 Col、Val 對應值
 };
 
-// 
+
 type BlockValue = {
   COLUMN1: string | null;
   COLUMN2: string | null;
