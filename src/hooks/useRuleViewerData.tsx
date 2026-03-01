@@ -1,3 +1,20 @@
+
+export type RuleUsed = {
+  Phase: string;
+  Rule_Name: string;
+  Block_Name: string;
+  Block_Type: string;
+  Block_Group: string;
+  Block_SEQ: string;
+  KEY?: string | null;
+  POSX: number;
+  POSY: number;
+  Pre_Block?: string | null;
+  Column1?: string | null;
+  Column2?: string | null;
+  VALUE?: string | null;
+};
+
 export type Rule = {
   Phase: string;
   Rule_Name: string;

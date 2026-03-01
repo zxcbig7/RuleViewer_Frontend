@@ -2,6 +2,7 @@
 import type {Rule} from "../hooks/useRuleViewerData"
 /* ---------- Random Data Generator ---------- */
 
+
 function makeRandomRules(count: number): Rule[] {
   const phases = ["PH1"];
   const blockTypes = ["Start", "Action", "Decision", "End"];

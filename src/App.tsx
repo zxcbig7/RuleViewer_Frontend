@@ -1,7 +1,10 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./layout/HomePage";
 import RuleViewer from "./pages/RuleViewer";
-import CanvasTest from "./pages/CanvasTestPage";
+import BasicCanvas from "./components/CanvasTest/BasicCanvas";
+import Test2 from "./components/CanvasTest/Test2";
+import  SudokuSolver from "./components/SudokuSolver";
+
 
 function App() {
   return (
@@ -13,9 +16,12 @@ function App() {
 
         {/* 這些才是右邊內容 */}
         <Route path="dashboard" element={<div>Dashboard</div>} />
+
         <Route path="ruleviewer" element={<RuleViewer />} />
 
-        <Route path="test" element={<CanvasTest />} />
+        <Route path="test" element={<BasicCanvas />} />
+        <Route path="test2" element={<Test2 />} />
+        <Route path="sudoku" element={<SudokuSolver />} />
 
         <Route path="user" element={<div>User</div>} />
         <Route path="user/tom" element={<div>Tom</div>} />

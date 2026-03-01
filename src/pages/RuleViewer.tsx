@@ -166,7 +166,6 @@ export default function RuleViewer() {
 
 
   // 在 RuleView 增加「聚焦方塊」能力（用 ref 暴露方法）
-
   const ruleViewRef = useRef<RuleViewHandle | null>(null);
 
   // effect 只在第一次 render 後讀取Rule Name
@@ -181,7 +180,6 @@ export default function RuleViewer() {
 
     // 讀取資料後做資料轉換的處理
     loadRule(selectedRule).then((data) => setRules(convertDtosToData(data)))
-
   }, [selectedRule]);
 
 
@@ -704,8 +702,6 @@ const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(function RuleView(
 
 // #region Block
 // BLOCK 相關設定
-
-
 const block_size = 80;
 
 type BlockType = RuleData["BLOCK_TYPE"];

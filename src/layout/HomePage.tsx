@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+
+
+import { ImCalculator } from "react-icons/im";
+
 import {
   DesktopOutlined,
   FileOutlined,
@@ -28,6 +32,8 @@ const items: MenuItem[] = [
   getItem("Rule Viewer", "/ruleviewer", <DesktopOutlined />),
 
   getItem("Test Page", "/test", <DesktopOutlined />),
+  getItem("Test Page2", "/test2", <DesktopOutlined />),
+  getItem("Sudoku Solver", "/sudoku", <ImCalculator />),
 
   // 父節點建議不要導頁，用 sub key
   getItem("User", "/user", <UserOutlined />, [
@@ -43,7 +49,7 @@ const items: MenuItem[] = [
   getItem("Files", "/files", <FileOutlined />),
 ];
 
-const HomePage: React.FC = () => {
+const HomePage = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();

@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
+// 限制數值在 min 和 max 之間
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
-const CanvasTest: React.FC = () => {
+const BasicCanvas = () => {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -282,4 +283,4 @@ const CanvasTest: React.FC = () => {
   );
 };
 
-export default CanvasTest;
+export default BasicCanvas;
