@@ -1,0 +1,148 @@
+// ============================================================
+// arrowUtils.ts
+// Arrow 的建構與繪製邏輯
+// ============================================================
+
+import type { Arrow, ArrowRenderStyle, Block, Side, RuleData } from "./types";
+import { blockCenter } from "./blockUtils";
+
+// ── 建構箭頭陣列 ─────────────────────────────────────────────
+export function buildArrows(data: RuleData[]): Arrow[] {
+  return data.flatMap((r) => {
+    if (!r.PRE_BLOCK || r.PRE_BLOCK.length === 0) return [];
+
+    const arrows: Arrow[] = [];
+
+    // 主線：第一個前置 Block
+    arrows.push({
+      from: r.PRE_BLOCK[0],
+      to: r.BLOCK_NAME,
+      isPrimary: true,
+    });
+
+    // 副線：第二個前置 Block（可選，例如 DECISION 節點的 false 線）
+    if (r.PRE_BLOCK.length >= 2) {
+      arrows.push({
+        from: r.PRE_BLOCK[1],
+        to: r.BLOCK_NAME,
+        isPrimary: false,
+      });
+    }
+
+    return arrows;
+  });
+}
+
+// ── 取得 Block 某一邊的中心點 ────────────────────────────────
+export function getSideCenter(b: Block, side: Side) {
+  switch (side) {
+    case "left":   return { x: b.x,           y: b.y + b.h / 2 };
+    case "right":  return { x: b.x + b.w,     y: b.y + b.h / 2 };
+    case "top":    return { x: b.x + b.w / 2, y: b.y };
+    case "bottom": return { x: b.x + b.w / 2, y: b.y + b.h };
+  }
+}
+
+// ── 依照 from / to 的相對位置決定連線邊 ─────────────────────
+export function decideConnectionSides(
+  from: Block,
+  to: Block
+): { fromSide: Side; toSide: Side } {
+  const c1 = blockCenter(from);
+  const c2 = blockCenter(to);
+
+  const dx = c2.x - c1.x;
+  const dy = c2.y - c1.y;
+
+  // 水平優先（dead zone EPS 避免斜向判斷不穩定）
+  const EPS = 5;
+  if (Math.abs(dx) > Math.abs(dy) + EPS) {
+    return dx > 0
+      ? { fromSide: "right", toSide: "left" }
+      : { fromSide: "left",  toSide: "right" };
+  }
+
+  // 垂直
+  return dy > 0
+    ? { fromSide: "bottom", toSide: "top" }
+    : { fromSide: "top",    toSide: "bottom" };
+}
+
+// ── 繪製單一箭頭 ─────────────────────────────────────────────
+export function drawArrow(
+  ctx: CanvasRenderingContext2D,
+  x1: number, y1: number,
+  x2: number, y2: number,
+  style: ArrowRenderStyle
+) {
+  const { isPrimary, scale } = style;
+  const headLen = (isPrimary ? 10 : 8) / scale;
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const angle = Math.atan2(dy, dx);
+
+  // 線段
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+
+  // 箭頭頭
+  const xA = x2 - headLen * Math.cos(angle - Math.PI / 6);
+  const yA = y2 - headLen * Math.sin(angle - Math.PI / 6);
+  const xB = x2 - headLen * Math.cos(angle + Math.PI / 6);
+  const yB = y2 - headLen * Math.sin(angle + Math.PI / 6);
+
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(xA, yA);
+  ctx.lineTo(xB, yB);
+  ctx.closePath();
+
+  // 主線：實心；副線：空心
+  if (isPrimary) {
+    ctx.fill();
+  } else {
+    ctx.stroke();
+  }
+}
+
+// ── 繪製所有箭頭 ─────────────────────────────────────────────
+export function drawArrows(
+  ctx: CanvasRenderingContext2D,
+  blocks: Block[],
+  arrows: Arrow[],
+  scale: number
+) {
+  const PRIMARY_COLOR   = "#374151"; // 主線：深灰
+  const SECONDARY_COLOR = "#ea580c"; // 副線：橘
+
+  arrows.forEach((a) => {
+    const from = blocks.find((b) => b.id === a.from);
+    const to   = blocks.find((b) => b.id === a.to);
+    if (!from || !to) return;
+
+    const { fromSide, toSide } = decideConnectionSides(from, to);
+    const start = getSideCenter(from, fromSide);
+    const end   = getSideCenter(to,   toSide);
+
+    const color = a.isPrimary ? PRIMARY_COLOR : SECONDARY_COLOR;
+
+    ctx.save();
+
+    ctx.strokeStyle = color;
+    ctx.fillStyle   = color;
+    ctx.lineWidth   = (a.isPrimary ? 1.8 : 1.2) / scale;
+
+    // 副線：虛線
+    ctx.setLineDash(a.isPrimary ? [] : [6 / scale, 4 / scale]);
+
+    drawArrow(ctx, start.x, start.y, end.x, end.y, {
+      isPrimary: a.isPrimary,
+      scale,
+    });
+
+    ctx.restore();
+  });
+}

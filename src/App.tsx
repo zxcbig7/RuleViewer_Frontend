@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./layout/HomePage";
-import RuleViewer from "./pages/RuleViewer";
+import RuleViewer from "./components/RTDRuleViewer/RuleViewer";
+
+
 import CanvasComponent from "./components/CanvasTest/BasicCanvas";
 import RuleViewerNew from "./components/CanvasTest/RuleViewerNew";
 
