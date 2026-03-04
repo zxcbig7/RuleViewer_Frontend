@@ -20,7 +20,7 @@ export function convertDtosToData(dtos: RuleDTO[]): RuleData[] {
 
     const preBlock =
       dto.PRE_BLOCK && dto.PRE_BLOCK.trim() !== ""
-        ? dto.PRE_BLOCK.split(",").map((s) => getBaseBlockName(s.trim()))
+        ? dto.PRE_BLOCK.split(",").map((s) => getBaseBlockName(s.trim())).slice(0, 2)
         : null;
 
     // VALUE1~5 合併為單一字串，過濾掉空值

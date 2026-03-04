@@ -273,7 +273,8 @@ type TokenType = "comment" | "string" | "keyword" | "text";
 type Token = { type: TokenType; text: string };
 
 const HIGHLIGHT_RE =
-  /("(?:[^"\\]|\\.)*")|(\/\*[\s\S]*?\*\/)|(\b(?:IF|ELSE|THEN|OR)\b)|(函\S*)/g;
+  /("(?:[^"\\]|\\.)*")|(\/\*[\s\S]*?\*\/)|(\/\/[^\n]*)|(\b(?:IF|ELSE|THEN|OR)\b)|(函\S*)/g;
+//  ^^^^ string ^^^^   ^^^ block comment ^^  ^ line //  ^^^^^^^^^^ keyword ^^^^^^^^^  ^ func
 
 function tokenize(code: string): Token[] {
   const result: Token[] = [];
@@ -285,7 +286,8 @@ function tokenize(code: string): Token[] {
     if (m.index > last) result.push({ type: "text", text: code.slice(last, m.index) });
     if      (m[1]) result.push({ type: "string",  text: m[1] });
     else if (m[2]) result.push({ type: "comment", text: m[2] });
-    else           result.push({ type: "keyword", text: m[3] ?? m[4] });
+    else if (m[3]) result.push({ type: "comment", text: m[3] });
+    else           result.push({ type: "keyword", text: m[4] ?? m[5] });
     last = HIGHLIGHT_RE.lastIndex;
   }
 

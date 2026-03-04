@@ -42,6 +42,7 @@ export type RuleData = {
   KEY: string | null;
   POSX: number;
   POSY: number;
+  /** 前置 Block 名稱，長度 0-2。[0] = 主線來源，[1] = 副線來源（選用） */
   PRE_BLOCK: string[] | null;
   VALUES: BlockValue[];
 };

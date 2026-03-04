@@ -8,6 +8,7 @@ import { Segmented, Typography, Divider } from "antd";
 import type { RuleViewHandle, RuleData } from "./types";
 import { loadRuleNames, loadRule } from "./api";
 import { convertDtosToData } from "./dataTransform";
+import { DEV_MOCK_RULE_NAME, DEV_MOCK_RULES } from "./devMock";
 import { RuleView } from "./RuleView";
 import { RuleDropdownSearch } from "./RuleDropdownSearch";
 import { RuleContentSearch, SearchNavigator } from "./RuleContentSearch";
@@ -21,8 +22,8 @@ export default function RuleViewer() {
 
   // ── Rule 載入 ─────────────────────────────────────────────
   const [ruleNames, setRuleNames]       = useState<string[]>([]);
-  const [selectedRule, setSelectedRule] = useState<string | null>(null);
-  const [rules, setRules]               = useState<RuleData[]>([]);
+  const [selectedRule, setSelectedRule] = useState<string | null>(DEV_MOCK_RULE_NAME);
+  const [rules, setRules]               = useState<RuleData[]>(DEV_MOCK_RULES);
 
   // ── Block 搜尋 ────────────────────────────────────────────
   const [matchedBlockList, setMatchedBlockList] = useState<string[] | null>(null);
@@ -63,11 +64,15 @@ export default function RuleViewer() {
   }, []);
 
   useEffect(() => {
-    loadRuleNames().then(setRuleNames);
+    loadRuleNames().then((names) => setRuleNames([DEV_MOCK_RULE_NAME, ...names]));
   }, []);
 
   useEffect(() => {
     if (!selectedRule) return;
+    if (selectedRule === DEV_MOCK_RULE_NAME) {
+      setRules(DEV_MOCK_RULES);
+      return;
+    }
     loadRule(selectedRule).then((data) => setRules(convertDtosToData(data)));
   }, [selectedRule]);
 
