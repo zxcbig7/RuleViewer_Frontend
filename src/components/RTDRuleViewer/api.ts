@@ -14,11 +14,21 @@ const client = axios.create({
   headers: { CID },
 });
 
-export async function loadRuleNames(): Promise<string[]> {
-  const res = await client.get<string[]>("/api/RuleViewer/names");
+/** 取得所有 Phase 清單 */
+export async function loadPhases(): Promise<string[]> {
+  const res = await client.get<string[]>("/api/RuleViewer/phases");
   return res.data;
 }
 
+/** 取得指定 Phase 下的 Rule Name 清單 */
+export async function loadRuleNamesByPhase(phase: string): Promise<string[]> {
+  const res = await client.get<string[]>(
+    `/api/RuleViewer/names/${encodeURIComponent(phase)}`
+  );
+  return res.data;
+}
+
+/** 取得指定 Rule 的完整資料 */
 export async function loadRule(ruleName: string): Promise<RuleDTO[]> {
   // encodeURIComponent 防止 ruleName 有空白、斜線、特殊字元直接炸掉
   const res = await client.get<RuleDTO[]>(

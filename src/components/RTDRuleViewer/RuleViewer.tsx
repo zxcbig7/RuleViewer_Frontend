@@ -6,9 +6,12 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Segmented, Typography, Divider } from "antd";
 import type { RuleViewHandle, RuleData } from "./types";
-import { loadRuleNames, loadRule } from "./api";
+import { loadPhases, loadRuleNamesByPhase, loadRule } from "./api";
 import { convertDtosToData } from "./dataTransform";
-import { DEV_MOCK_RULE_NAME, DEV_MOCK_RULES } from "./devMock";
+import {
+  DEV_MOCK_PHASE, DEV_MOCK_RULE_NAME, DEV_MOCK_RULES,
+  MOCK_PHASES, MOCK_RULES_BY_PHASE, MOCK_RULE_DATA,
+} from "./devMock";
 import { RuleView } from "./RuleView";
 import { RuleDropdownSearch } from "./RuleDropdownSearch";
 import { RuleContentSearch, SearchNavigator } from "./RuleContentSearch";
@@ -20,10 +23,12 @@ type ViewMode = "Viewer" | "Case Query";
 export default function RuleViewer() {
   const [viewMode, setViewMode] = useState<ViewMode>("Viewer");
 
-  // ── Rule 載入 ─────────────────────────────────────────────
-  const [ruleNames, setRuleNames]       = useState<string[]>([]);
-  const [selectedRule, setSelectedRule] = useState<string | null>(DEV_MOCK_RULE_NAME);
-  const [rules, setRules]               = useState<RuleData[]>(DEV_MOCK_RULES);
+  // ── 兩階段 Rule 載入 ──────────────────────────────────────
+  const [phases, setPhases]                     = useState<string[]>([DEV_MOCK_PHASE, ...MOCK_PHASES]);
+  const [selectedPhase, setSelectedPhase]       = useState<string | null>(DEV_MOCK_PHASE);
+  const [ruleNamesByPhase, setRuleNamesByPhase] = useState<string[]>([DEV_MOCK_RULE_NAME]);
+  const [selectedRule, setSelectedRule]         = useState<string | null>(DEV_MOCK_RULE_NAME);
+  const [rules, setRules]                       = useState<RuleData[]>(DEV_MOCK_RULES);
 
   // ── Block 搜尋 ────────────────────────────────────────────
   const [matchedBlockList, setMatchedBlockList] = useState<string[] | null>(null);
@@ -63,22 +68,46 @@ export default function RuleViewer() {
     };
   }, []);
 
+  // Phase 清單：掛載時從 API 取得，mock phases 永遠放第一位
   useEffect(() => {
-    loadRuleNames().then((names) => setRuleNames([DEV_MOCK_RULE_NAME, ...names]));
+    loadPhases()
+      .then((names) => setPhases([DEV_MOCK_PHASE, ...MOCK_PHASES, ...names]))
+      .catch(() => {/* API 尚未就緒時保留 mock phases */});
   }, []);
 
+  // Phase 變更 → 重新取 Rule Name 清單，並清空 Rule 選擇
   useEffect(() => {
-    if (!selectedRule) return;
-    if (selectedRule === DEV_MOCK_RULE_NAME) {
-      setRules(DEV_MOCK_RULES);
-      return;
-    }
-    loadRule(selectedRule).then((data) => setRules(convertDtosToData(data)));
-  }, [selectedRule]);
-
-  useEffect(() => {
+    setSelectedRule(null);
+    setRules([]);
     setMatchedBlockList(null);
     setMatchIndex(0);
+
+    if (!selectedPhase) { setRuleNamesByPhase([]); return; }
+
+    // DEV phase
+    if (selectedPhase === DEV_MOCK_PHASE) {
+      setRuleNamesByPhase([DEV_MOCK_RULE_NAME]);
+      return;
+    }
+
+    // APF mock phases
+    if (selectedPhase in MOCK_RULES_BY_PHASE) {
+      setRuleNamesByPhase(MOCK_RULES_BY_PHASE[selectedPhase as keyof typeof MOCK_RULES_BY_PHASE]);
+      return;
+    }
+
+    loadRuleNamesByPhase(selectedPhase).then(setRuleNamesByPhase);
+  }, [selectedPhase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Rule 變更 → 載入資料
+  useEffect(() => {
+    if (!selectedRule) return;
+
+    // mock rule data
+    if (selectedRule === DEV_MOCK_RULE_NAME) { setRules(DEV_MOCK_RULES); return; }
+    if (selectedRule in MOCK_RULE_DATA)       { setRules(MOCK_RULE_DATA[selectedRule]); return; }
+
+    loadRule(selectedRule).then((data) => setRules(convertDtosToData(data)));
   }, [selectedRule]);
 
   function handlePrev() {
@@ -107,8 +136,14 @@ export default function RuleViewer() {
       {/* ── TopBar：Rule 選擇 + 搜尋 + 模式切換 ── */}
       <div className="rounded-xl px-4 py-2.5 bg-[#1f2a44] flex items-center gap-3 flex-shrink-0">
 
-        {/* Rule 下拉選擇（兩種模式都顯示） */}
-        <RuleDropdownSearch options={ruleNames} onSelect={setSelectedRule} />
+        {/* 兩階段 Rule 選擇（兩種模式都顯示） */}
+        <RuleDropdownSearch
+          phases={phases}
+          selectedPhase={selectedPhase}
+          ruleNames={ruleNamesByPhase}
+          onPhaseChange={setSelectedPhase}
+          onRuleSelect={setSelectedRule}
+        />
 
         {/* Viewer 模式：顯示關鍵字搜尋 + 導覽 */}
         {viewMode === "Viewer" && (

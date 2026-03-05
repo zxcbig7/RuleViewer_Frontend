@@ -50,6 +50,8 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
 
     // ── UI 狀態 ───────────────────────────────────────────
     const [inspectors, setInspectors]       = useState<InspectorState[]>([]);
+    // focusStack：block.id 按點擊順序排列，尾端 = 最近點擊 = Esc 最優先關閉
+    const [focusStack, setFocusStack]       = useState<string[]>([]);
     const [hoveredBlock, setHoveredBlock]   = useState<Block | null>(null);
     const [mousePos, setMousePos]           = useState<{ x: number; y: number } | null>(null);
 
@@ -273,6 +275,10 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
           if (prev.some((i) => i.block.id === hitBlock.id)) return prev;
           return [...prev, { block: hitBlock, x: mx, y: my }];
         });
+        setFocusStack((prev) => {
+          if (prev.includes(hitBlock.id)) return prev;
+          return [...prev, hitBlock.id];
+        });
       }
 
       function onMouseMove(e: MouseEvent) {
@@ -413,7 +419,23 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
     // ── Rules 換了 → 清空 Inspectors ─────────────────────
     useEffect(() => {
       setInspectors([]);
+      setFocusStack([]);
     }, [rules]);
+
+    // ── Esc → 關閉 focusStack 最頂端的 Inspector ─────────
+    useEffect(() => {
+      function onKeyDown(e: KeyboardEvent) {
+        if (e.key !== "Escape") return;
+        setFocusStack((prev) => {
+          if (prev.length === 0) return prev;
+          const topId = prev[prev.length - 1];
+          setInspectors((insp) => insp.filter((i) => i.block.id !== topId));
+          return prev.slice(0, -1);
+        });
+      }
+      window.addEventListener("keydown", onKeyDown);
+      return () => window.removeEventListener("keydown", onKeyDown);
+    }, []);
 
     // ── 重新 Render（matchedIds / inspectedIds 改變時） ──
     useEffect(() => {
@@ -474,23 +496,32 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
             />
           </div>
 
-          {/* Inspectors */}
-          {inspectors.map(({ block, x, y }) => (
-            <BlockInspector
-              key={block.id}
-              block={block}
-              initialX={x}
-              initialY={y}
-              wrapperRef={canvasStageRef}
-              inspectorDraggingRef={inspectorDraggingRef}
-              onPositionChange={(nx, ny) => updateInspectorPosition(block.id, nx, ny)}
-              onClose={() =>
-                setInspectors((prev) =>
-                  prev.filter((i) => i.block.id !== block.id)
-                )
-              }
-            />
-          ))}
+          {/* Inspectors（順序固定，z-index 由 focusStack 位置決定） */}
+          {inspectors.map(({ block, x, y }) => {
+            const zIndex = 100 + focusStack.indexOf(block.id);
+            return (
+              <BlockInspector
+                key={block.id}
+                block={block}
+                initialX={x}
+                initialY={y}
+                wrapperRef={canvasStageRef}
+                inspectorDraggingRef={inspectorDraggingRef}
+                zIndex={zIndex}
+                onPositionChange={(nx, ny) => updateInspectorPosition(block.id, nx, ny)}
+                onClose={() => {
+                  setInspectors((prev) => prev.filter((i) => i.block.id !== block.id));
+                  setFocusStack((prev) => prev.filter((id) => id !== block.id));
+                }}
+                onFocus={() =>
+                  setFocusStack((prev) => {
+                    const filtered = prev.filter((id) => id !== block.id);
+                    return [...filtered, block.id];
+                  })
+                }
+              />
+            );
+          })}
         </div>
 
         {/* Minimap */}
