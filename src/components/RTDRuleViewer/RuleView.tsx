@@ -24,6 +24,8 @@ import { BlockInspector } from "./BlockInspector";
 type RuleViewProps = {
   rules: RuleData[];
   matchedBlockIds: Set<string> | null;
+  trackerLogIds?: Set<string>;
+  trackerVarIds?: Set<string>;
 };
 
 type InspectorState = {
@@ -33,30 +35,30 @@ type InspectorState = {
 };
 
 export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
-  function RuleView({ rules, matchedBlockIds }, ref) {
+  function RuleView({ rules, matchedBlockIds, trackerLogIds, trackerVarIds }, ref) {
 
     // ── Canvas refs ────────────────────────────────────────
     const canvasStageRef = useRef<HTMLDivElement | null>(null);
-    const canvasRef      = useRef<HTMLCanvasElement | null>(null);
-    const ctxRef         = useRef<CanvasRenderingContext2D | null>(null);
-    const wrapperRef     = useRef<HTMLDivElement | null>(null);
-    const minimapRef     = useRef<HTMLCanvasElement | null>(null);
-    const dprRef         = useRef(1);
-    const sizeRef        = useRef({ w: 0, h: 0 });
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+    const wrapperRef = useRef<HTMLDivElement | null>(null);
+    const minimapRef = useRef<HTMLCanvasElement | null>(null);
+    const dprRef = useRef(1);
+    const sizeRef = useRef({ w: 0, h: 0 });
 
     // ── 資料 ─────────────────────────────────────────────
     const blocks = useMemo(() => buildBlocks(rules), [rules]);
     const arrows = useMemo(() => buildArrows(rules), [rules]);
 
     // ── UI 狀態 ───────────────────────────────────────────
-    const [inspectors, setInspectors]       = useState<InspectorState[]>([]);
+    const [inspectors, setInspectors] = useState<InspectorState[]>([]);
     // focusStack：block.id 按點擊順序排列，尾端 = 最近點擊 = Esc 最優先關閉
-    const [focusStack, setFocusStack]       = useState<string[]>([]);
-    const [hoveredBlock, setHoveredBlock]   = useState<Block | null>(null);
-    const [mousePos, setMousePos]           = useState<{ x: number; y: number } | null>(null);
+    const [focusStack, setFocusStack] = useState<string[]>([]);
+    const [hoveredBlock, setHoveredBlock] = useState<Block | null>(null);
+    const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
     const inspectorDraggingRef = useRef(false);
-    const activeBlockRef       = useRef<Block | null>(null);
+    const activeBlockRef = useRef<Block | null>(null);
 
     const inspectedBlockIds = useMemo(
       () => new Set(inspectors.map((i) => i.block.id)),
@@ -89,13 +91,30 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
     // ── 顯示設定 ──────────────────────────────────────────
     const [showGrid, setShowGrid] = useState(true);
     const showGridRef = useRef(true);
-    const showConnectorsRef = useRef(true); // dashed lines from inspector panel to block
+    const [showMinimap, setShowMinimap] = useState(true);
+    const [showConnectors, setShowConnectors] = useState(true);
+    const showConnectorsRef = useRef(true);
+
+    // ── 小地圖尺寸（與 viewport 同比例） ─────────────────
+    const MM_MAX = 250; // 最長邊 px
+    const [minimapSize, setMinimapSize] = useState({ w: MM_MAX, h: Math.round(MM_MAX * 9 / 16) });
+
+    function syncMinimapSize(vw: number, vh: number) {
+      const aspect = vw / vh;
+      const size = aspect >= 1
+        ? { w: MM_MAX, h: Math.round(MM_MAX / aspect) }
+        : { w: Math.round(MM_MAX * aspect), h: MM_MAX };
+      // 同時命令式更新 canvas buffer（確保 redraw 讀到新尺寸）
+      const mm = minimapRef.current;
+      if (mm) { mm.width = size.w; mm.height = size.h; }
+      setMinimapSize(size);
+    }
 
     // ── redraw ────────────────────────────────────────────
     const redraw = useCallback(
       (ctx: CanvasRenderingContext2D, blocks: Block[]) => {
-        const view    = viewRef.current;
-        const dpr     = dprRef.current;
+        const view = viewRef.current;
+        const dpr = dprRef.current;
         const { w, h } = sizeRef.current;
 
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -105,14 +124,37 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
 
         if (showGridRef.current) drawGrid(ctx, view, sizeRef.current);
         drawArrows(ctx, blocks, arrows, view.scale);
-        drawBlocks(ctx, blocks, inspectedBlockIds, matchedBlockIds);
+        drawBlocks(ctx, blocks, inspectedBlockIds, matchedBlockIds, trackerLogIds, trackerVarIds);
+
+        // ── Tracker 連線（var 模式：log → var blocks） ─────
+        if (trackerLogIds?.size && trackerVarIds?.size) {
+          ctx.save();
+          ctx.strokeStyle = "rgba(168,85,247,0.45)";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([5, 5]);
+          ctx.shadowColor = "rgba(168,85,247,0.3)";
+          ctx.shadowBlur = 4;
+          for (const logId of trackerLogIds) {
+            const lb = blocks.find((b) => b.id === logId);
+            if (!lb) continue;
+            for (const varId of trackerVarIds) {
+              const vb = blocks.find((b) => b.id === varId);
+              if (!vb) continue;
+              ctx.beginPath();
+              ctx.moveTo(lb.x + lb.w / 2, lb.y + lb.h / 2);
+              ctx.lineTo(vb.x + vb.w / 2, vb.y + vb.h / 2);
+              ctx.stroke();
+            }
+          }
+          ctx.restore();
+        }
 
         // ── Inspector 虛線連線（切回螢幕像素空間繪製） ────
         const posMap = inspectorPositionsRef.current;
         if (posMap.size > 0 && showConnectorsRef.current) {
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-          const INSP_W      = 340;
+          const INSP_W = 340;
           const INSP_HEADER = 40;
 
           for (const [blockId, pos] of posMap) {
@@ -127,14 +169,14 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
             const icx = pos.x + INSP_W / 2;
             const icy = pos.y + INSP_HEADER / 2;
             const candidates = [
-              { x: icx,            y: pos.y },
-              { x: icx,            y: pos.y + INSP_HEADER },
-              { x: pos.x,          y: icy },
+              { x: icx, y: pos.y },
+              { x: icx, y: pos.y + INSP_HEADER },
+              { x: pos.x, y: icy },
               { x: pos.x + INSP_W, y: icy },
             ];
             const anchor = candidates.reduce((best, a) =>
               Math.hypot(a.x - bCx, a.y - bCy) <
-              Math.hypot(best.x - bCx, best.y - bCy) ? a : best
+                Math.hypot(best.x - bCx, best.y - bCy) ? a : best
             );
 
             ctx.save();
@@ -165,12 +207,12 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
           if (mmCtx) drawMinimap(mmCtx, blocks, viewRef.current, mm, sizeRef.current);
         }
       },
-      [arrows, inspectedBlockIds, matchedBlockIds]
+      [arrows, inspectedBlockIds, matchedBlockIds, trackerLogIds, trackerVarIds]
     );
 
     // ── 初始化 Canvas（只在 blocks 變更時重設畫布尺寸） ──
     useEffect(() => {
-      const canvas  = canvasRef.current;
+      const canvas = canvasRef.current;
       const wrapper = canvasStageRef.current;
       if (!canvas || !wrapper) return;
 
@@ -183,14 +225,16 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
       if (rect.width === 0 || rect.height === 0) return;
 
       const dpr = window.devicePixelRatio || 1;
-      dprRef.current  = dpr;
+      dprRef.current = dpr;
       sizeRef.current = { w: rect.width, h: rect.height };
 
-      canvas.width        = rect.width  * dpr;
-      canvas.height       = rect.height * dpr;
-      canvas.style.width  = `${rect.width}px`;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+      syncMinimapSize(rect.width, rect.height);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [blocks]);
 
     // ── Canvas 尺寸追蹤（ResizeObserver，容器縮放也能即時反應） ──
@@ -200,7 +244,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
 
       const ro = new ResizeObserver(() => {
         const canvas = canvasRef.current;
-        const ctx    = ctxRef.current;
+        const ctx = ctxRef.current;
         if (!canvas || !ctx) return;
 
         const rect = wrapper.getBoundingClientRect();
@@ -208,12 +252,14 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
 
         const dpr = window.devicePixelRatio || 1;
         sizeRef.current = { w: rect.width, h: rect.height };
-        dprRef.current  = dpr;
+        dprRef.current = dpr;
 
-        canvas.width        = rect.width  * dpr;
-        canvas.height       = rect.height * dpr;
-        canvas.style.width  = `${rect.width}px`;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        canvas.style.width = `${rect.width}px`;
         canvas.style.height = `${rect.height}px`;
+
+        syncMinimapSize(rect.width, rect.height);
 
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         redraw(ctx, blocks);
@@ -241,8 +287,8 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
         if (e.button !== 0) return;
 
         const rect = canvas!.getBoundingClientRect();
-        const mx   = e.clientX - rect.left;
-        const my   = e.clientY - rect.top;
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
         const { x: wx, y: wy } = screenToWorld(mx, my);
         const hitBlock = hitTestBlock(wx, wy, blocks);
 
@@ -262,11 +308,11 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
         if (!wrapper || !canvas) return;
 
         const wrapperRect = wrapper.getBoundingClientRect();
-        const canvasRect  = canvas.getBoundingClientRect();
+        const canvasRect = canvas.getBoundingClientRect();
 
         // Inspector 位置：相對 wrapper
         const mx = e.clientX - canvasRect.left + (canvasRect.left - wrapperRect.left);
-        const my = e.clientY - canvasRect.top  + (canvasRect.top  - wrapperRect.top);
+        const my = e.clientY - canvasRect.top + (canvasRect.top - wrapperRect.top);
 
         // hit-test 用 canvas 座標
         const cx = e.clientX - canvasRect.left;
@@ -293,14 +339,14 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
         if (!ctx) return;
 
         const rect = canvas!.getBoundingClientRect();
-        const mx   = e.clientX - rect.left;
-        const my   = e.clientY - rect.top;
-        const dx   = e.clientX - dragRef.current.lastX;
-        const dy   = e.clientY - dragRef.current.lastY;
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const dx = e.clientX - dragRef.current.lastX;
+        const dy = e.clientY - dragRef.current.lastY;
 
         if (activeBlockRef.current) {
           // 拖曳 Block
-          const b     = activeBlockRef.current;
+          const b = activeBlockRef.current;
           const scale = viewRef.current.scale;
           b.x += dx / scale;
           b.y += dy / scale;
@@ -330,7 +376,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
           b.x = snap(b.x, GRID_SIZE);
           b.y = snap(b.y, GRID_SIZE);
         }
-        activeBlockRef.current   = null;
+        activeBlockRef.current = null;
         dragRef.current.dragging = false;
         canvas!.style.cursor = "default";
       }
@@ -339,13 +385,13 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
         if (!e.ctrlKey) return;
         e.preventDefault();
 
-        const ctx    = ctxRef.current;
+        const ctx = ctxRef.current;
         if (!ctx || !canvas) return;
 
         const view = viewRef.current;
         const rect = canvas.getBoundingClientRect();
-        const mx   = e.clientX - rect.left;
-        const my   = e.clientY - rect.top;
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
 
         const wx = (mx - view.translateX) / view.scale;
         const wy = (my - view.translateY) / view.scale;
@@ -354,7 +400,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
           view.scale * Math.exp(-e.deltaY * 0.0015)
         ));
 
-        view.scale      = newScale;
+        view.scale = newScale;
         view.translateX = mx - wx * newScale;
         view.translateY = my - wy * newScale;
 
@@ -363,27 +409,27 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
 
       function onWindowBlur() {
         dragRef.current.dragging = false;
-        activeBlockRef.current   = null;
-        canvas!.style.cursor     = "default";
+        activeBlockRef.current = null;
+        canvas!.style.cursor = "default";
       }
 
-      canvas.style.cursor     = "default";
+      canvas.style.cursor = "default";
       canvas.style.touchAction = "none";
 
-      canvas.addEventListener("dblclick",  onDoubleClick);
+      canvas.addEventListener("dblclick", onDoubleClick);
       canvas.addEventListener("mousedown", onMouseDown);
       canvas.addEventListener("mousemove", onMouseMove);
-      canvas.addEventListener("wheel",     onWheel, { passive: false });
-      window.addEventListener("mouseup",   onMouseUp);
-      window.addEventListener("blur",      onWindowBlur);
+      canvas.addEventListener("wheel", onWheel, { passive: false });
+      window.addEventListener("mouseup", onMouseUp);
+      window.addEventListener("blur", onWindowBlur);
 
       return () => {
-        canvas.removeEventListener("dblclick",  onDoubleClick);
+        canvas.removeEventListener("dblclick", onDoubleClick);
         canvas.removeEventListener("mousedown", onMouseDown);
         canvas.removeEventListener("mousemove", onMouseMove);
-        canvas.removeEventListener("wheel",     onWheel);
-        window.removeEventListener("mouseup",   onMouseUp);
-        window.removeEventListener("blur",      onWindowBlur);
+        canvas.removeEventListener("wheel", onWheel);
+        window.removeEventListener("mouseup", onMouseUp);
+        window.removeEventListener("blur", onWindowBlur);
       };
     }, [blocks, redraw]);
 
@@ -395,22 +441,22 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
       function onMouseDown(e: MouseEvent) {
         if (inspectorDraggingRef.current) return;
 
-        const rect   = canvas!.getBoundingClientRect();
-        const mx     = e.clientX - rect.left;
-        const my     = e.clientY - rect.top;
+        const rect = canvas!.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
         const bounds = getWorldBounds(blocks);
 
-        const FIT_RATIO = 0.9;
-        const worldW  = bounds.maxX - bounds.minX;
-        const worldH  = bounds.maxY - bounds.minY;
+        const FIT_RATIO = 0.85;
+        const worldW = bounds.maxX - bounds.minX;
+        const worldH = bounds.maxY - bounds.minY;
         const mmScale = Math.min(canvas!.width / worldW, canvas!.height / worldH) * FIT_RATIO;
-        const ox = (canvas!.width  - worldW * mmScale) / 2 - bounds.minX * mmScale;
+        const ox = (canvas!.width - worldW * mmScale) / 2 - bounds.minX * mmScale;
         const oy = (canvas!.height - worldH * mmScale) / 2 - bounds.minY * mmScale;
 
         const wx = (mx - ox) / mmScale;
         const wy = (my - oy) / mmScale;
 
-        const view      = viewRef.current;
+        const view = viewRef.current;
         view.translateX = sizeRef.current.w / 2 - wx * view.scale;
         view.translateY = sizeRef.current.h / 2 - wy * view.scale;
 
@@ -455,7 +501,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
         const ctx = ctxRef.current;
         if (!ctx) return;
 
-        const view    = viewRef.current;
+        const view = viewRef.current;
         const { w, h } = sizeRef.current;
 
         view.translateX = w / 2 - (b.x + b.w / 2) * view.scale;
@@ -487,7 +533,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
       const wx = (cx - view.translateX) / view.scale;
       const wy = (cy - view.translateY) / view.scale;
       const newScale = Math.max(0.05, Math.min(5, view.scale * factor));
-      view.scale      = newScale;
+      view.scale = newScale;
       view.translateX = cx - wx * newScale;
       view.translateY = cy - wy * newScale;
       redraw(ctx, blocks);
@@ -555,29 +601,30 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
 
         {/* Minimap + Controls */}
         <div className="absolute left-5 bottom-5 flex flex-col gap-1.5">
-          {/* Minimap */}
-          <div className="border border-[#9ca3af] bg-white">
-            <canvas ref={minimapRef} width={160} height={120} />
+          {/* Minimap — 用 hidden 隱藏而非 unmount，保持 ref 與事件監聽器有效 */}
+          <div className={`border border-[#9ca3af] bg-white self-start${showMinimap ? "" : " hidden"}`}>
+            <canvas ref={minimapRef} width={minimapSize.w} height={minimapSize.h} style={{ display: "block" }} />
           </div>
 
-          {/* Zoom + Grid toggle */}
-          <div className="flex items-center gap-1">
+          {/* Controls */}
+          <div className="flex items-center gap-1.5">
+            {/* Connector lines toggle  ╌ = dashed line */}
             <button
-              onClick={() => zoomBy(1.25)}
-              title="Zoom in"
-              className="w-7 h-7 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-sm hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
-            >+</button>
-            <button
-              onClick={() => zoomBy(0.8)}
-              title="Zoom out"
-              className="w-7 h-7 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-sm hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
-            >−</button>
-            <button
-              onClick={zoomReset}
-              title="Reset zoom"
-              className="px-1.5 h-7 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-[10px] hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
-            >1:1</button>
-            {/* Grid toggle */}
+              onClick={() => {
+                setShowConnectors((v) => {
+                  showConnectorsRef.current = !v;
+                  const ctx = ctxRef.current;
+                  if (ctx) redraw(ctx, blocks);
+                  return !v;
+                });
+              }}
+              title="Toggle connector lines"
+              className={`w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors ${showConnectors
+                  ? "bg-indigo-500 border-indigo-600 text-white hover:bg-indigo-600"
+                  : "bg-white border-[#9ca3af] text-[#9ca3af] hover:bg-[#f3f4f6]"
+                }`}
+            >╌</button>
+            {/* Grid toggle  # = grid */}
             <button
               onClick={() => {
                 setShowGrid((v) => {
@@ -588,12 +635,38 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
                 });
               }}
               title="Toggle grid"
-              className={`px-1.5 h-7 flex items-center justify-center rounded border text-[10px] cursor-pointer shadow-sm transition-colors ${
-                showGrid
+              className={`w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors ${showGrid
                   ? "bg-indigo-500 border-indigo-600 text-white hover:bg-indigo-600"
                   : "bg-white border-[#9ca3af] text-[#9ca3af] hover:bg-[#f3f4f6]"
-              }`}
-            >格</button>
+                }`}
+            >#</button>
+            {/* Minimap toggle  ⊡ = overview box */}
+            <button
+              onClick={() => setShowMinimap((v) => !v)}
+              title="Toggle minimap"
+              className={`w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors ${showMinimap
+                  ? "bg-indigo-500 border-indigo-600 text-white hover:bg-indigo-600"
+                  : "bg-white border-[#9ca3af] text-[#9ca3af] hover:bg-[#f3f4f6]"
+                }`}
+            >⊡</button>
+            {/* Divider */}
+            <div className="w-px h-6 bg-[#d1d5db]" />
+            {/* Zoom buttons */}
+            <button
+              onClick={() => zoomBy(1.25)}
+              title="Zoom in"
+              className="w-9 h-9 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-base hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
+            >+</button>
+            <button
+              onClick={() => zoomBy(0.8)}
+              title="Zoom out"
+              className="w-9 h-9 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-base hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
+            >−</button>
+            <button
+              onClick={zoomReset}
+              title="Reset zoom"
+              className="px-2 h-9 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-xs hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
+            >1:1</button>
           </div>
         </div>
       </div>

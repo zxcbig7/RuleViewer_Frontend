@@ -1,23 +1,29 @@
 // ============================================================
 // RuleContentSearch.tsx
-// Toolbar 右側：在當前 Rule 內搜尋關鍵字
+// 右側面板搜尋分頁：在當前 Rule 內搜尋關鍵字
 // ============================================================
 
 import { useState, useCallback } from "react";
 import { Input } from "antd";
 import type { RuleData } from "./types";
 
-type RuleContentSearchProps = {
-  rules: RuleData[];
-  onMatchChange: (matched: string[] | null) => void;
+// ── 型別 ──────────────────────────────────────────────────────
+
+export type MatchResult = {
+  id: string;      // BLOCK_NAME
+  snippet: string; // 命中的上下文摘要
 };
 
-function matchRule(rule: RuleData, keyword: string): boolean {
-  const kw = keyword.toLowerCase();
+type RuleContentSearchProps = {
+  rules: RuleData[];
+  onMatchChange: (matched: MatchResult[] | null, keyword: string) => void;
+};
 
+// ── 工具函式 ──────────────────────────────────────────────────
+
+function matchRule(rule: RuleData, kw: string): boolean {
   if (rule.BLOCK_NAME.toLowerCase().includes(kw)) return true;
   if (rule.KEY && rule.KEY.toLowerCase().includes(kw)) return true;
-
   return rule.VALUES.some(
     (v) =>
       (v.COLUMN1 && v.COLUMN1.toLowerCase().includes(kw)) ||
@@ -26,10 +32,28 @@ function matchRule(rule: RuleData, keyword: string): boolean {
   );
 }
 
-/**
- * 對 rules 做拓撲排序（Kahn's BFS），同層以 BLOCK_SEQ 為次排序。
- * 回傳 BLOCK_NAME 陣列，順序即為樹狀流程的延展順序。
- */
+/** 取最具代表性的命中摘要（優先 VALUE > COLUMN > KEY > BLOCK_NAME） */
+function getSnippet(rule: RuleData, keyword: string): string {
+  const kw = keyword.toLowerCase();
+
+  // 先找 VALUE 命中（最有資訊量）
+  for (const v of rule.VALUES) {
+    const val = v.VALUE;
+    if (val && val.toLowerCase().includes(kw)) {
+      const flat = val.replace(/\n/g, " ");
+      const idx  = flat.toLowerCase().indexOf(kw);
+      const s    = Math.max(0, idx - 18);
+      const e    = Math.min(flat.length, idx + kw.length + 18);
+      return (s > 0 ? "…" : "") + flat.slice(s, e) + (e < flat.length ? "…" : "");
+    }
+    if (v.COLUMN1?.toLowerCase().includes(kw)) return `col: ${v.COLUMN1}`;
+    if (v.COLUMN2?.toLowerCase().includes(kw)) return `ref: ${v.COLUMN2}`;
+  }
+  if (rule.KEY?.toLowerCase().includes(kw)) return `key: ${rule.KEY}`;
+  return "";
+}
+
+/** 拓撲排序（Kahn BFS），同層以 BLOCK_SEQ 次排序 */
 function topoSort(rules: RuleData[]): string[] {
   const nameSet  = new Set(rules.map((r) => r.BLOCK_NAME));
   const seqOf    = new Map(rules.map((r) => [r.BLOCK_NAME, Number(r.BLOCK_SEQ)]));
@@ -40,7 +64,6 @@ function topoSort(rules: RuleData[]): string[] {
     children.set(r.BLOCK_NAME, []);
     inDegree.set(r.BLOCK_NAME, 0);
   }
-
   for (const r of rules) {
     for (const pre of r.PRE_BLOCK ?? []) {
       if (nameSet.has(pre)) {
@@ -50,20 +73,16 @@ function topoSort(rules: RuleData[]): string[] {
     }
   }
 
-  // 以 BLOCK_SEQ 排序維護佇列（最小 seq 優先出佇列）
   const bySeq = (a: string, b: string) => (seqOf.get(a) ?? 0) - (seqOf.get(b) ?? 0);
-
   const queue = [...inDegree.entries()]
     .filter(([, d]) => d === 0)
     .map(([n]) => n)
     .sort(bySeq);
-
   const result: string[] = [];
 
   while (queue.length > 0) {
     const curr = queue.shift()!;
     result.push(curr);
-
     const next = (children.get(curr) ?? []).sort(bySeq);
     for (const child of next) {
       const deg = (inDegree.get(child) ?? 1) - 1;
@@ -74,37 +93,41 @@ function topoSort(rules: RuleData[]): string[] {
       }
     }
   }
-
   return result;
 }
+
+// ── Components ────────────────────────────────────────────────
 
 export function RuleContentSearch({ rules, onMatchChange }: RuleContentSearchProps) {
   const [keyword, setKeyword] = useState("");
 
   const handleSearch = useCallback(() => {
     const kw = keyword.trim();
-    if (!kw) {
-      onMatchChange(null);
-      return;
-    }
+    if (!kw) { onMatchChange(null, ""); return; }
 
     const matchedSet = new Set(
-      rules.filter((r) => matchRule(r, kw)).map((r) => r.BLOCK_NAME)
+      rules.filter((r) => matchRule(r, kw.toLowerCase())).map((r) => r.BLOCK_NAME)
     );
-    const matched = topoSort(rules).filter((name) => matchedSet.has(name));
+    const sorted  = topoSort(rules).filter((name) => matchedSet.has(name));
+    const ruleMap = new Map(rules.map((r) => [r.BLOCK_NAME, r]));
 
-    onMatchChange(matched);
+    const results: MatchResult[] = sorted.map((id) => ({
+      id,
+      snippet: getSnippet(ruleMap.get(id)!, kw),
+    }));
+
+    onMatchChange(results, kw);
   }, [keyword, rules, onMatchChange]);
 
   const handleClear = useCallback(() => {
     setKeyword("");
-    onMatchChange(null);
+    onMatchChange(null, "");
   }, [onMatchChange]);
 
   return (
     <Input.Search
-      placeholder="Search Rule Content (block / key / column / value)"
-      style={{ width: 360 }}
+      placeholder="Search blocks, keys, columns, values…"
+      style={{ width: "100%" }}
       value={keyword}
       enterButton="Search"
       allowClear
@@ -115,60 +138,39 @@ export function RuleContentSearch({ rules, onMatchChange }: RuleContentSearchPro
   );
 }
 
-// ============================================================
-// SearchNavigator.tsx
-// 搜尋結果的前 / 後導覽與下拉跳轉
-// ============================================================
+// ── SearchNavigator（無下拉）────────────────────────────────────
 
 type SearchNavigatorProps = {
-  matched: string[] | null;
+  total: number;
   index: number;
   onPrev: () => void;
   onNext: () => void;
-  onPick: (i: number) => void;
 };
 
-export function SearchNavigator({
-  matched,
-  index,
-  onPrev,
-  onNext,
-  onPick,
-}: SearchNavigatorProps) {
-  const total = matched?.length ?? 0;
-  if (!matched || total === 0) return null;
+export function SearchNavigator({ total, index, onPrev, onNext }: SearchNavigatorProps) {
+  if (total === 0) return null;
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1 flex-shrink-0">
       <button
         onClick={onPrev}
         disabled={index <= 0}
-        className="px-2 py-1 rounded text-white bg-white/10 hover:bg-white/20 disabled:opacity-40 disabled:cursor-default cursor-pointer"
+        className="w-6 h-6 flex items-center justify-center rounded text-white bg-white/10
+          hover:bg-white/20 disabled:opacity-30 disabled:cursor-default cursor-pointer text-sm"
       >
-        ⏮
+        ‹
       </button>
-      <span className="px-2 text-[#cfd6e6] whitespace-nowrap">
+      <span className="text-xs text-[#cfd6e6] px-1 whitespace-nowrap tabular-nums">
         {index + 1} / {total}
       </span>
       <button
         onClick={onNext}
         disabled={index >= total - 1}
-        className="px-2 py-1 rounded text-white bg-white/10 hover:bg-white/20 disabled:opacity-40 disabled:cursor-default cursor-pointer"
+        className="w-6 h-6 flex items-center justify-center rounded text-white bg-white/10
+          hover:bg-white/20 disabled:opacity-30 disabled:cursor-default cursor-pointer text-sm"
       >
-        ⏭
+        ›
       </button>
-
-      <select
-        value={index}
-        onChange={(e) => onPick(Number(e.target.value))}
-        className="ml-2 w-[220px] rounded px-2 py-1 bg-white/10 text-white border border-white/20 cursor-pointer"
-      >
-        {matched.map((id, i) => (
-          <option key={id} value={i} className="text-black bg-white">
-            {i + 1}. {id}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

@@ -73,8 +73,7 @@ export function drawMinimap(
   const worldW = bounds.maxX - bounds.minX;
   const worldH = bounds.maxY - bounds.minY;
 
-  // 90% 塞滿，留 10% 邊距
-  const FIT_RATIO = 0.9;
+  const FIT_RATIO = 0.85;
   const scale = Math.min(
     canvas.width  / worldW,
     canvas.height / worldH

@@ -77,7 +77,8 @@ export function drawBlock(
   ctx: CanvasRenderingContext2D,
   b: Block,
   highlighted: boolean,
-  isMatched: boolean
+  isMatched: boolean,
+  trackerRole?: "log" | "var"
 ) {
   ctx.save();
 
@@ -118,6 +119,18 @@ export function drawBlock(
   ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h + 4);
 
   ctx.restore();
+
+  // Tracker 光環（在 restore 之後繪製，不受 globalAlpha 影響）
+  if (trackerRole) {
+    const isLog = trackerRole === "log";
+    ctx.save();
+    ctx.strokeStyle  = isLog ? "#f59e0b" : "#a855f7";
+    ctx.lineWidth    = 2.5;
+    ctx.shadowColor  = isLog ? "rgba(245,158,11,0.8)" : "rgba(168,85,247,0.8)";
+    ctx.shadowBlur   = 14;
+    ctx.strokeRect(b.x - 3, b.y - 3, b.w + 6, b.h + 6);
+    ctx.restore();
+  }
 }
 
 // ── 繪製所有 Block ───────────────────────────────────────────
@@ -125,14 +138,17 @@ export function drawBlocks(
   ctx: CanvasRenderingContext2D,
   blocks: Block[],
   inspectedIds: Set<string>,
-  matchedIds: Set<string> | null
+  matchedIds: Set<string> | null,
+  trackerLogIds?: Set<string>,
+  trackerVarIds?: Set<string>
 ) {
   blocks.forEach((b) =>
     drawBlock(
       ctx,
       b,
       inspectedIds.has(b.id),
-      matchedIds ? matchedIds.has(b.id) : true
+      matchedIds ? matchedIds.has(b.id) : true,
+      trackerLogIds?.has(b.id) ? "log" : trackerVarIds?.has(b.id) ? "var" : undefined
     )
   );
 }

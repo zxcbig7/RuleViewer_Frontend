@@ -1,10 +1,10 @@
 // ============================================================
 // RuleViewer.tsx
-// 主入口元件：Viewer 介面（Canvas）+ Case Query 介面，可切換
+// 主入口元件：Canvas + 右側面板（搜尋 / Tracker 分頁）
 // ============================================================
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Segmented, Typography, Divider } from "antd";
+import { Divider } from "antd";
 import type { RuleViewHandle, RuleData } from "./types";
 import { loadPhases, loadRuleNamesByPhase, loadRule } from "./api";
 import { convertDtosToData } from "./dataTransform";
@@ -15,14 +15,12 @@ import {
 import { RuleView } from "./RuleView";
 import { RuleDropdownSearch } from "./RuleDropdownSearch";
 import { RuleContentSearch, SearchNavigator } from "./RuleContentSearch";
+import type { MatchResult } from "./RuleContentSearch";
+import { CaseQuery } from "./CaseQuery";
 
-const { Text } = Typography;
-
-type ViewMode = "Viewer" | "Case Query";
+type RightTab = "search" | "tracker";
 
 export default function RuleViewer() {
-  const [viewMode, setViewMode] = useState<ViewMode>("Viewer");
-
   // ── 兩階段 Rule 載入 ──────────────────────────────────────
   const [phases, setPhases]                     = useState<string[]>([DEV_MOCK_PHASE, ...MOCK_PHASES]);
   const [selectedPhase, setSelectedPhase]       = useState<string | null>(DEV_MOCK_PHASE);
@@ -31,27 +29,32 @@ export default function RuleViewer() {
   const [rules, setRules]                       = useState<RuleData[]>(DEV_MOCK_RULES);
 
   // ── Block 搜尋 ────────────────────────────────────────────
-  const [matchedBlockList, setMatchedBlockList] = useState<string[] | null>(null);
+  const [matchedBlockList, setMatchedBlockList] = useState<MatchResult[] | null>(null);
+  const [searchKeyword, setSearchKeyword]       = useState("");
   const [matchIndex, setMatchIndex]             = useState(0);
+
+  // ── Tracker 高亮 ──────────────────────────────────────────
+  const [trackerLogIds, setTrackerLogIds] = useState<string[]>([]);
+  const [trackerVarIds, setTrackerVarIds] = useState<string[]>([]);
 
   const ruleViewRef = useRef<RuleViewHandle | null>(null);
 
   const matchedBlockIds = useMemo(() => {
     if (!matchedBlockList) return null;
-    return new Set(matchedBlockList);
+    return new Set(matchedBlockList.map((m) => m.id));
   }, [matchedBlockList]);
 
-  // ── 右側面板寬度 / 收合 ───────────────────────────────────
-  const [rightPanelWidth, setRightPanelWidth] = useState(280);
+  // ── 右側面板寬度 / 收合 / 分頁 ───────────────────────────
+  const [rightPanelWidth, setRightPanelWidth] = useState(300);
   const [rightCollapsed, setRightCollapsed]   = useState(false);
-  const dividerDragRef = useRef({ dragging: false, startX: 0, startW: 280 });
+  const [rightTab, setRightTab]               = useState<RightTab>("search");
+  const dividerDragRef = useRef({ dragging: false, startX: 0, startW: 300 });
 
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
       if (!dividerDragRef.current.dragging) return;
-      // 往左拖（dx > 0）→ 面板變大
       const dx   = dividerDragRef.current.startX - e.clientX;
-      const newW = Math.max(160, Math.min(600, dividerDragRef.current.startW + dx));
+      const newW = Math.max(220, Math.min(600, dividerDragRef.current.startW + dx));
       setRightPanelWidth(newW);
     }
     function onMouseUp() {
@@ -68,14 +71,14 @@ export default function RuleViewer() {
     };
   }, []);
 
-  // Phase 清單：掛載時從 API 取得，mock phases 永遠放第一位
+  // Phase 清單
   useEffect(() => {
     loadPhases()
       .then((names) => setPhases([DEV_MOCK_PHASE, ...MOCK_PHASES, ...names]))
-      .catch(() => {/* API 尚未就緒時保留 mock phases */});
+      .catch(() => {});
   }, []);
 
-  // Phase 變更 → 重新取 Rule Name 清單，並清空 Rule 選擇
+  // Phase 變更
   useEffect(() => {
     setSelectedRule(null);
     setRules([]);
@@ -83,30 +86,19 @@ export default function RuleViewer() {
     setMatchIndex(0);
 
     if (!selectedPhase) { setRuleNamesByPhase([]); return; }
-
-    // DEV phase
-    if (selectedPhase === DEV_MOCK_PHASE) {
-      setRuleNamesByPhase([DEV_MOCK_RULE_NAME]);
-      return;
-    }
-
-    // APF mock phases
+    if (selectedPhase === DEV_MOCK_PHASE) { setRuleNamesByPhase([DEV_MOCK_RULE_NAME]); return; }
     if (selectedPhase in MOCK_RULES_BY_PHASE) {
       setRuleNamesByPhase(MOCK_RULES_BY_PHASE[selectedPhase as keyof typeof MOCK_RULES_BY_PHASE]);
       return;
     }
-
     loadRuleNamesByPhase(selectedPhase).then(setRuleNamesByPhase);
   }, [selectedPhase]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Rule 變更 → 載入資料
+  // Rule 變更
   useEffect(() => {
     if (!selectedRule) return;
-
-    // mock rule data
     if (selectedRule === DEV_MOCK_RULE_NAME) { setRules(DEV_MOCK_RULES); return; }
     if (selectedRule in MOCK_RULE_DATA)       { setRules(MOCK_RULE_DATA[selectedRule]); return; }
-
     loadRule(selectedRule).then((data) => setRules(convertDtosToData(data)));
   }, [selectedRule]);
 
@@ -114,29 +106,40 @@ export default function RuleViewer() {
     if (!matchedBlockList?.length) return;
     const next = Math.max(0, matchIndex - 1);
     setMatchIndex(next);
-    ruleViewRef.current?.focusBlockById(matchedBlockList[next]);
+    ruleViewRef.current?.focusBlockById(matchedBlockList[next].id);
   }
 
   function handleNext() {
     if (!matchedBlockList?.length) return;
     const next = Math.min(matchedBlockList.length - 1, matchIndex + 1);
     setMatchIndex(next);
-    ruleViewRef.current?.focusBlockById(matchedBlockList[next]);
+    ruleViewRef.current?.focusBlockById(matchedBlockList[next].id);
   }
 
   function handlePick(i: number) {
     if (!matchedBlockList) return;
     setMatchIndex(i);
-    ruleViewRef.current?.focusBlockById(matchedBlockList[i]);
+    ruleViewRef.current?.focusBlockById(matchedBlockList[i].id);
+  }
+
+  function highlightSnippet(snippet: string, kw: string) {
+    if (!kw) return <span>{snippet}</span>;
+    const idx = snippet.toLowerCase().indexOf(kw.toLowerCase());
+    if (idx === -1) return <span>{snippet}</span>;
+    return (
+      <>
+        {snippet.slice(0, idx)}
+        <span className="text-[#fadb14] font-semibold">{snippet.slice(idx, idx + kw.length)}</span>
+        {snippet.slice(idx + kw.length)}
+      </>
+    );
   }
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-3 p-3">
 
-      {/* ── TopBar：Rule 選擇 + 搜尋 + 模式切換 ── */}
+      {/* ── TopBar：Rule 選擇 ── */}
       <div className="rounded-xl px-4 py-2.5 bg-[#1f2a44] flex items-center gap-3 flex-shrink-0">
-
-        {/* 兩階段 Rule 選擇（兩種模式都顯示） */}
         <RuleDropdownSearch
           phases={phases}
           selectedPhase={selectedPhase}
@@ -144,189 +147,166 @@ export default function RuleViewer() {
           onPhaseChange={setSelectedPhase}
           onRuleSelect={setSelectedRule}
         />
-
-        {/* Viewer 模式：顯示關鍵字搜尋 + 導覽 */}
-        {viewMode === "Viewer" && (
-          <>
-            <div className="w-px h-8 bg-white/20 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <RuleContentSearch
-                rules={rules}
-                onMatchChange={(list) => {
-                  setMatchedBlockList(list);
-                  setMatchIndex(0);
-                }}
-              />
-            </div>
-            <SearchNavigator
-              matched={matchedBlockList}
-              index={matchIndex}
-              onPrev={handlePrev}
-              onNext={handleNext}
-              onPick={handlePick}
-            />
-          </>
-        )}
-
-        {/* 模式切換（右側） */}
-        <div className="ml-auto flex-shrink-0">
-          <Segmented<ViewMode>
-            options={["Viewer", "Case Query"]}
-            value={viewMode}
-            onChange={setViewMode}
-          />
-        </div>
       </div>
 
-      {/* ── Viewer 介面 ── */}
-      {viewMode === "Viewer" && (
-        <div className="flex-1 min-h-0 flex">
+      {/* ── 主體：Canvas + 右側面板 ── */}
+      <div className="flex-1 min-h-0 flex">
 
-          {/* Canvas 區域 */}
-          <div className="flex-1 min-w-0 rounded-xl bg-white border border-black/[.12] relative overflow-hidden">
-            <RuleView
-              ref={ruleViewRef}
-              rules={rules}
-              matchedBlockIds={matchedBlockIds}
-            />
+        {/* Canvas */}
+        <div className="flex-1 min-w-0 rounded-xl bg-white border border-black/[.12] relative overflow-hidden">
+          <RuleView
+            ref={ruleViewRef}
+            rules={rules}
+            matchedBlockIds={matchedBlockIds}
+            trackerLogIds={trackerLogIds.length ? new Set(trackerLogIds) : undefined}
+            trackerVarIds={trackerVarIds.length ? new Set(trackerVarIds) : undefined}
+          />
+        </div>
+
+        {/* 拖曳分隔線（收合時不可見） */}
+        <div
+          className={`w-2 flex-shrink-0 mx-1 flex items-center justify-center cursor-col-resize select-none group self-stretch ${rightCollapsed ? "invisible" : ""}`}
+          onMouseDown={(e) => {
+            if (rightCollapsed) return;
+            e.preventDefault();
+            dividerDragRef.current.dragging = true;
+            dividerDragRef.current.startX  = e.clientX;
+            dividerDragRef.current.startW  = rightPanelWidth;
+            document.body.style.cursor     = "col-resize";
+            document.body.style.userSelect = "none";
+          }}
+        >
+          <div className="w-0.5 h-10 rounded-full bg-white/25 group-hover:bg-white/60 transition-colors" />
+        </div>
+
+        {/* 右側面板（始終掛載，收合時僅顯示展開按鈕） */}
+        <div
+          className={`flex-shrink-0 rounded-xl bg-[#0e1428] border border-black/[.12] text-white flex flex-col min-h-0 overflow-hidden ${rightCollapsed ? "" : "p-3"}`}
+          style={{ width: rightCollapsed ? 32 : rightPanelWidth }}
+        >
+          {/* 收合狀態：僅展開按鈕 */}
+          <div className={rightCollapsed ? "flex flex-col items-center py-2" : "hidden"}>
+            <button
+              onClick={() => setRightCollapsed(false)}
+              title="展開面板"
+              className="w-6 h-6 flex items-center justify-center rounded text-white/50 hover:text-white hover:bg-white/10 cursor-pointer text-base leading-none"
+            >
+              ‹
+            </button>
           </div>
 
-          {/* 拖曳分隔線（收合時隱藏） */}
-          {!rightCollapsed && (
-            <div
-              className="w-2 flex-shrink-0 mx-1 flex items-center justify-center cursor-col-resize select-none group self-stretch"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                dividerDragRef.current.dragging = true;
-                dividerDragRef.current.startX  = e.clientX;
-                dividerDragRef.current.startW  = rightPanelWidth;
-                document.body.style.cursor     = "col-resize";
-                document.body.style.userSelect = "none";
-              }}
-            >
-              <div className="w-0.5 h-10 rounded-full bg-white/25 group-hover:bg-white/60 transition-colors" />
-            </div>
-          )}
+          {/* 展開狀態：完整面板內容 */}
+          <div className={rightCollapsed ? "hidden" : "flex-1 min-h-0 flex flex-col"}>
 
-          {/* 右側面板（展開） */}
-          {!rightCollapsed && (
-            <div
-              className="flex-shrink-0 rounded-xl bg-[#0e1428] border border-black/[.12] p-3 text-white flex flex-col min-h-0 overflow-hidden"
-              style={{ width: rightPanelWidth }}
-            >
-              {/* 標題 */}
-              <div className="flex items-center justify-between gap-2 flex-shrink-0">
-                <div className="truncate min-w-0 flex-1">
-                  <Text style={{ color: "#fff", fontSize: 15, fontWeight: 700 }}>
-                    {selectedRule ?? "No Rule Selected"}
-                  </Text>
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  {matchedBlockList && (
-                    <span className="text-xs text-[#8b9ab8]">
-                      {matchedBlockList.length} match{matchedBlockList.length !== 1 ? "es" : ""}
-                    </span>
-                  )}
-                  {/* 收合按鈕 */}
+            {/* 分頁標頭 */}
+            <div className="flex items-center justify-between gap-2 flex-shrink-0">
+              <div className="flex gap-0.5">
+                {(["search", "tracker"] as RightTab[]).map((tab) => (
                   <button
-                    onClick={() => setRightCollapsed(true)}
-                    title="收合面板"
-                    className="w-6 h-6 flex items-center justify-center rounded text-white/50 hover:text-white hover:bg-white/10 cursor-pointer text-base leading-none flex-shrink-0"
+                    key={tab}
+                    onClick={() => setRightTab(tab)}
+                    className={`px-3 py-1 rounded text-xs font-semibold cursor-pointer transition-colors ${
+                      rightTab === tab
+                        ? "bg-white/15 text-white"
+                        : "text-[#8b9ab8] hover:text-white hover:bg-white/[.07]"
+                    }`}
                   >
-                    ›
+                    {tab === "search" ? "搜尋" : "Tracker"}
                   </button>
-                </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setRightCollapsed(true)}
+                title="收合面板"
+                className="w-6 h-6 flex items-center justify-center rounded text-white/50 hover:text-white hover:bg-white/10 cursor-pointer text-base leading-none flex-shrink-0"
+              >
+                ›
+              </button>
+            </div>
+
+            <Divider style={{ borderColor: "rgba(255,255,255,0.1)", margin: "8px 0" }} />
+
+            {/* ── 搜尋分頁 ── */}
+            <div className={rightTab === "search" ? "flex-1 min-h-0 flex flex-col gap-2" : "hidden"}>
+
+              {/* 搜尋列 */}
+              <div className="flex-shrink-0">
+                <RuleContentSearch
+                  rules={rules}
+                  onMatchChange={(list, kw) => {
+                    setMatchedBlockList(list);
+                    setSearchKeyword(kw);
+                    setMatchIndex(0);
+                  }}
+                />
               </div>
 
-              <Divider style={{ borderColor: "rgba(255,255,255,0.1)", margin: "10px 0" }} />
+              {/* 導覽列 + 結果數 */}
+              {matchedBlockList && (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <SearchNavigator
+                    total={matchedBlockList.length}
+                    index={matchIndex}
+                    onPrev={handlePrev}
+                    onNext={handleNext}
+                  />
+                  <span className="ml-auto text-xs text-[#8b9ab8] flex-shrink-0">
+                    {matchedBlockList.length} match{matchedBlockList.length !== 1 ? "es" : ""}
+                  </span>
+                </div>
+              )}
 
               {/* 結果列表 */}
               <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-1.5">
                 {!selectedRule && (
-                  <p className="text-[#cfd6e6] text-sm">Select a rule from the toolbar.</p>
+                  <p className="text-[#8b9ab8] text-xs">請先選擇 Rule。</p>
                 )}
                 {selectedRule && !matchedBlockList && (
-                  <p className="text-[#cfd6e6] text-sm">Use the search bar to find blocks.</p>
+                  <p className="text-[#8b9ab8] text-xs">在上方輸入關鍵字，搜尋相關 Block。</p>
                 )}
                 {matchedBlockList?.length === 0 && (
-                  <p className="text-[#cfd6e6] text-sm">No matches found.</p>
+                  <p className="text-[#8b9ab8] text-xs">No matches found.</p>
                 )}
-                {matchedBlockList?.map((id, i) => (
+                {matchedBlockList?.map((m, i) => (
                   <button
-                    key={id}
+                    key={m.id}
                     onClick={() => handlePick(i)}
-                    className={`text-left px-3 py-2 rounded-[8px] border text-sm cursor-pointer transition-colors ${
+                    className={`text-left px-3 py-2 rounded-[8px] border text-xs cursor-pointer transition-colors ${
                       i === matchIndex
                         ? "border-[#52c41a]/50 bg-[#52c41a]/[.12] text-white"
                         : "border-white/10 bg-white/[.04] text-[#cfd6e6] hover:bg-white/[.08]"
                     }`}
                   >
-                    <span className="text-white/40 mr-1.5 text-xs">{i + 1}.</span>
-                    {id}
+                    <div className="font-semibold truncate">
+                      <span className="text-white/40 mr-1.5">{i + 1}.</span>
+                      {m.id}
+                    </div>
+                    {m.snippet && (
+                      <div className="mt-0.5 text-[10px] text-white/50 truncate">
+                        {highlightSnippet(m.snippet, searchKeyword)}
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
             </div>
-          )}
 
-          {/* 右側面板（收合狀態） */}
-          {rightCollapsed && (
-            <div className="ml-2 flex-shrink-0 w-8 rounded-xl bg-[#0e1428] border border-black/[.12] text-white flex flex-col items-center py-2">
-              <button
-                onClick={() => setRightCollapsed(false)}
-                title="展開面板"
-                className="w-6 h-6 flex items-center justify-center rounded text-white/50 hover:text-white hover:bg-white/10 cursor-pointer text-base leading-none"
-              >
-                ‹
-              </button>
-            </div>
-          )}
-
-        </div>
-      )}
-
-      {/* ── Case Query 介面 ── */}
-      {viewMode === "Case Query" && (
-        <div className="flex-1 min-h-0 flex flex-col gap-3">
-
-          {/* 查詢列 */}
-          <div className="rounded-xl px-4 py-3 bg-[#0f1629] flex items-center gap-3 flex-shrink-0">
-            <span className="text-[#cfd6e6] text-sm font-semibold whitespace-nowrap">
-              Case ID
-            </span>
-            <input
-              className="flex-1 rounded px-3 py-1.5 bg-white/10 text-white border border-white/20 placeholder:text-white/30 text-sm outline-none focus:border-white/40"
-              placeholder="Enter case / lot ID..."
-            />
-            <button className="px-4 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold flex-shrink-0 cursor-pointer">
-              Query
-            </button>
-          </div>
-
-          {/* 結果主體 */}
-          <div className="flex-1 min-h-0 flex gap-3">
-
-            {/* 左：結果清單 */}
-            <div className="w-[300px] min-w-[300px] rounded-xl bg-[#0e1428] border border-black/[.12] p-3 text-white flex flex-col min-h-0">
-              <Text style={{ color: "#fff", fontSize: 15, fontWeight: 700 }}>Results</Text>
-              <Divider style={{ borderColor: "rgba(255,255,255,0.1)", margin: "10px 0" }} />
-              <div className="flex-1 flex items-center justify-center text-[#8b9ab8] text-sm">
-                No results yet.
-              </div>
-            </div>
-
-            {/* 右：詳細資訊 */}
-            <div className="flex-1 min-w-0 rounded-xl bg-[#0e1428] border border-black/[.12] p-3 text-white flex flex-col min-h-0">
-              <Text style={{ color: "#fff", fontSize: 15, fontWeight: 700 }}>Detail</Text>
-              <Divider style={{ borderColor: "rgba(255,255,255,0.1)", margin: "10px 0" }} />
-              <div className="flex-1 flex items-center justify-center text-[#8b9ab8] text-sm">
-                Select a result to view details.
-              </div>
+            {/* ── Tracker 分頁 ── */}
+            <div className={rightTab === "tracker" ? "flex-1 min-h-0 flex flex-col" : "hidden"}>
+              <CaseQuery
+                rules={rules}
+                selectedRule={selectedRule}
+                onHighlight={(logIds, varIds) => {
+                  setTrackerLogIds(logIds);
+                  setTrackerVarIds(varIds);
+                }}
+              />
             </div>
 
           </div>
         </div>
-      )}
+
+      </div>
 
     </div>
   );
