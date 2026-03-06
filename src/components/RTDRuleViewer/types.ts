@@ -28,7 +28,7 @@ export type RuleDTO = {
 export type BlockValue = {
   COLUMN1: string | null;
   COLUMN2: string | null;
-  VALUE: string;
+  VALUE: string | null;
 };
 
 // ── 資料轉換後的 Block 資料 ─────────────────────────────────

@@ -5,9 +5,11 @@ import RuleViewer from "./components/RTDRuleViewer/RuleViewer";
 
 import CanvasComponent from "./components/CanvasTest/BasicCanvas";
 import RuleViewerNew from "./components/CanvasTest/RuleViewerNew";
-
-
 import RuleViewerLayout from "./components/RuleViewer/Layout";
+
+import TestBlockInspector from "./pages/TestBlockInspector";
+import TestRuleView from "./pages/TestRuleView";
+import TestControls from "./pages/TestControls";
 
 
 import SudokuSolver from "./components/Sudoku/SudokuSolver";
@@ -31,9 +33,11 @@ function App() {
 
         {/* Rule Viewer New Pages */}
         <Route path="ruleviewer/main" element={<RuleViewerNew />} />
-        <Route path="ruleviewer/test1" element={<RuleViewerLayout />} />
-        <Route path="ruleviewer/test2" element={<CanvasComponent />} />
-        <Route path="ruleviewer/test3" element={<CanvasComponent />} />
+        <Route path="ruleviewer/test1" element={<TestBlockInspector />} />
+        <Route path="ruleviewer/test2" element={<TestRuleView />} />
+        <Route path="ruleviewer/test3" element={<TestControls />} />
+        <Route path="ruleviewer/legacy1" element={<RuleViewerLayout />} />
+        <Route path="ruleviewer/legacy2" element={<CanvasComponent />} />
 
         {/* Sudoku Pages */}
         <Route path="sudoku" element={<SudokuSolver />} />

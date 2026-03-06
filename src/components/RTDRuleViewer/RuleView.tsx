@@ -86,6 +86,11 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
 
     const dragRef = useRef({ dragging: false, lastX: 0, lastY: 0 });
 
+    // ── 顯示設定 ──────────────────────────────────────────
+    const [showGrid, setShowGrid] = useState(true);
+    const showGridRef = useRef(true);
+    const showConnectorsRef = useRef(true); // dashed lines from inspector panel to block
+
     // ── redraw ────────────────────────────────────────────
     const redraw = useCallback(
       (ctx: CanvasRenderingContext2D, blocks: Block[]) => {
@@ -98,13 +103,13 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
         ctx.translate(view.translateX, view.translateY);
         ctx.scale(view.scale, view.scale);
 
-        drawGrid(ctx, view, sizeRef.current);
+        if (showGridRef.current) drawGrid(ctx, view, sizeRef.current);
         drawArrows(ctx, blocks, arrows, view.scale);
         drawBlocks(ctx, blocks, inspectedBlockIds, matchedBlockIds);
 
         // ── Inspector 虛線連線（切回螢幕像素空間繪製） ────
         const posMap = inspectorPositionsRef.current;
-        if (posMap.size > 0) {
+        if (posMap.size > 0 && showConnectorsRef.current) {
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
           const INSP_W      = 340;
@@ -471,6 +476,30 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
 
     useImperativeHandle(ref, () => ({ focusBlockById }), [focusBlockById]);
 
+    // ── 縮放按鈕 ──────────────────────────────────────────
+    const zoomBy = useCallback((factor: number) => {
+      const ctx = ctxRef.current;
+      if (!ctx) return;
+      const view = viewRef.current;
+      const { w, h } = sizeRef.current;
+      const cx = w / 2;
+      const cy = h / 2;
+      const wx = (cx - view.translateX) / view.scale;
+      const wy = (cy - view.translateY) / view.scale;
+      const newScale = Math.max(0.05, Math.min(5, view.scale * factor));
+      view.scale      = newScale;
+      view.translateX = cx - wx * newScale;
+      view.translateY = cy - wy * newScale;
+      redraw(ctx, blocks);
+    }, [blocks, redraw]);
+
+    const zoomReset = useCallback(() => {
+      const ctx = ctxRef.current;
+      if (!ctx) return;
+      viewRef.current = { translateX: 0, translateY: 0, scale: 1 };
+      redraw(ctx, blocks);
+    }, [blocks, redraw]);
+
     // ── Inspector 位置更新（拖曳時同步並觸發重繪） ────────
     const updateInspectorPosition = useCallback(
       (blockId: string, x: number, y: number) => {
@@ -524,9 +553,48 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
           })}
         </div>
 
-        {/* Minimap */}
-        <div className="absolute left-5 bottom-5 border border-[#9ca3af] bg-white">
-          <canvas ref={minimapRef} width={160} height={120} />
+        {/* Minimap + Controls */}
+        <div className="absolute left-5 bottom-5 flex flex-col gap-1.5">
+          {/* Minimap */}
+          <div className="border border-[#9ca3af] bg-white">
+            <canvas ref={minimapRef} width={160} height={120} />
+          </div>
+
+          {/* Zoom + Grid toggle */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => zoomBy(1.25)}
+              title="Zoom in"
+              className="w-7 h-7 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-sm hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
+            >+</button>
+            <button
+              onClick={() => zoomBy(0.8)}
+              title="Zoom out"
+              className="w-7 h-7 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-sm hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
+            >−</button>
+            <button
+              onClick={zoomReset}
+              title="Reset zoom"
+              className="px-1.5 h-7 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-[10px] hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
+            >1:1</button>
+            {/* Grid toggle */}
+            <button
+              onClick={() => {
+                setShowGrid((v) => {
+                  showGridRef.current = !v;
+                  const ctx = ctxRef.current;
+                  if (ctx) redraw(ctx, blocks);
+                  return !v;
+                });
+              }}
+              title="Toggle grid"
+              className={`px-1.5 h-7 flex items-center justify-center rounded border text-[10px] cursor-pointer shadow-sm transition-colors ${
+                showGrid
+                  ? "bg-indigo-500 border-indigo-600 text-white hover:bg-indigo-600"
+                  : "bg-white border-[#9ca3af] text-[#9ca3af] hover:bg-[#f3f4f6]"
+              }`}
+            >格</button>
+          </div>
         </div>
       </div>
     );

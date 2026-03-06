@@ -22,7 +22,7 @@ function matchRule(rule: RuleData, keyword: string): boolean {
     (v) =>
       (v.COLUMN1 && v.COLUMN1.toLowerCase().includes(kw)) ||
       (v.COLUMN2 && v.COLUMN2.toLowerCase().includes(kw)) ||
-      v.VALUE.toLowerCase().includes(kw)
+      (v.VALUE != null && v.VALUE.toLowerCase().includes(kw))
   );
 }
 

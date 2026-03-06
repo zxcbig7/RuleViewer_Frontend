@@ -30,12 +30,10 @@ const items: MenuItem[] = [
 
   getItem("Sudoku Solver", "/sudoku", <ImCalculator />),
 
-  // 父節點建議不要導頁，用 sub key
-  getItem("Rule Viewer", "", <DesktopOutlined />, [
-    getItem("Main Page", "/ruleviewer/main", <DesktopOutlined />),
-    getItem("Layout", "/ruleviewer/test1", <DesktopOutlined />),
-    getItem("Canvas", "/ruleviewer/test2", <DesktopOutlined />),
-    getItem("Block Info", "/ruleviewer/test3", <DesktopOutlined />),
+  getItem("RTD Rule Viewer", "", <DesktopOutlined />, [
+    getItem("Block Inspector", "/ruleviewer/test1", <DesktopOutlined />),
+    getItem("Rule View (Canvas)", "/ruleviewer/test2", <DesktopOutlined />),
+    getItem("Controls", "/ruleviewer/test3", <DesktopOutlined />),
   ]),
 ];
 

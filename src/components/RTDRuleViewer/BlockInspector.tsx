@@ -392,7 +392,7 @@ function DecisionConditionCard({ v }: { v: BlockValue }) {
         )}
       </div>
       <pre className="font-mono text-xs leading-relaxed bg-white border border-[#fde68a] rounded px-2.5 py-2 m-0 whitespace-pre-wrap break-all">
-        <HighlightedValue code={v.VALUE} />
+        {v.VALUE != null && <HighlightedValue code={v.VALUE} />}
       </pre>
     </div>
   );
@@ -425,7 +425,7 @@ function AssignmentCard({ index, v }: { index: number; v: BlockValue }) {
       </div>
       {/* 值表達式 */}
       <pre className="font-mono text-xs leading-relaxed bg-white border border-[#e5e7eb] rounded px-2.5 py-1.5 m-0 whitespace-pre-wrap break-all ml-6">
-        <HighlightedValue code={v.VALUE} />
+        {v.VALUE != null && <HighlightedValue code={v.VALUE} />}
       </pre>
     </div>
   );
