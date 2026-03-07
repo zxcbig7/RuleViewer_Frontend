@@ -22,16 +22,16 @@ type RightTab = "search" | "tracker";
 
 export default function RuleViewer() {
   // ── 兩階段 Rule 載入 ──────────────────────────────────────
-  const [phases, setPhases]                     = useState<string[]>([DEV_MOCK_PHASE, ...MOCK_PHASES]);
-  const [selectedPhase, setSelectedPhase]       = useState<string | null>(DEV_MOCK_PHASE);
+  const [phases, setPhases] = useState<string[]>([DEV_MOCK_PHASE, ...MOCK_PHASES]);
+  const [selectedPhase, setSelectedPhase] = useState<string | null>(DEV_MOCK_PHASE);
   const [ruleNamesByPhase, setRuleNamesByPhase] = useState<string[]>([DEV_MOCK_RULE_NAME]);
-  const [selectedRule, setSelectedRule]         = useState<string | null>(DEV_MOCK_RULE_NAME);
-  const [rules, setRules]                       = useState<RuleData[]>(DEV_MOCK_RULES);
+  const [selectedRule, setSelectedRule] = useState<string | null>(DEV_MOCK_RULE_NAME);
+  const [rules, setRules] = useState<RuleData[]>(DEV_MOCK_RULES);
 
   // ── Block 搜尋 ────────────────────────────────────────────
   const [matchedBlockList, setMatchedBlockList] = useState<MatchResult[] | null>(null);
-  const [searchKeyword, setSearchKeyword]       = useState("");
-  const [matchIndex, setMatchIndex]             = useState(0);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [matchIndex, setMatchIndex] = useState(0);
 
   // ── Tracker 高亮 ──────────────────────────────────────────
   const [trackerLogIds, setTrackerLogIds] = useState<string[]>([]);
@@ -46,28 +46,28 @@ export default function RuleViewer() {
 
   // ── 右側面板寬度 / 收合 / 分頁 ───────────────────────────
   const [rightPanelWidth, setRightPanelWidth] = useState(300);
-  const [rightCollapsed, setRightCollapsed]   = useState(false);
-  const [rightTab, setRightTab]               = useState<RightTab>("search");
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [rightTab, setRightTab] = useState<RightTab>("search");
   const dividerDragRef = useRef({ dragging: false, startX: 0, startW: 300 });
 
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
       if (!dividerDragRef.current.dragging) return;
-      const dx   = dividerDragRef.current.startX - e.clientX;
+      const dx = dividerDragRef.current.startX - e.clientX;
       const newW = Math.max(220, Math.min(600, dividerDragRef.current.startW + dx));
       setRightPanelWidth(newW);
     }
     function onMouseUp() {
       if (!dividerDragRef.current.dragging) return;
       dividerDragRef.current.dragging = false;
-      document.body.style.cursor     = "";
+      document.body.style.cursor = "";
       document.body.style.userSelect = "";
     }
     window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup",   onMouseUp);
+    window.addEventListener("mouseup", onMouseUp);
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup",   onMouseUp);
+      window.removeEventListener("mouseup", onMouseUp);
     };
   }, []);
 
@@ -75,7 +75,7 @@ export default function RuleViewer() {
   useEffect(() => {
     loadPhases()
       .then((names) => setPhases([DEV_MOCK_PHASE, ...MOCK_PHASES, ...names]))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Phase 變更
@@ -98,7 +98,7 @@ export default function RuleViewer() {
   useEffect(() => {
     if (!selectedRule) return;
     if (selectedRule === DEV_MOCK_RULE_NAME) { setRules(DEV_MOCK_RULES); return; }
-    if (selectedRule in MOCK_RULE_DATA)       { setRules(MOCK_RULE_DATA[selectedRule]); return; }
+    if (selectedRule in MOCK_RULE_DATA) { setRules(MOCK_RULE_DATA[selectedRule]); return; }
     loadRule(selectedRule).then((data) => setRules(convertDtosToData(data)));
   }, [selectedRule]);
 
@@ -170,9 +170,9 @@ export default function RuleViewer() {
             if (rightCollapsed) return;
             e.preventDefault();
             dividerDragRef.current.dragging = true;
-            dividerDragRef.current.startX  = e.clientX;
-            dividerDragRef.current.startW  = rightPanelWidth;
-            document.body.style.cursor     = "col-resize";
+            dividerDragRef.current.startX = e.clientX;
+            dividerDragRef.current.startW = rightPanelWidth;
+            document.body.style.cursor = "col-resize";
             document.body.style.userSelect = "none";
           }}
         >
@@ -205,11 +205,10 @@ export default function RuleViewer() {
                   <button
                     key={tab}
                     onClick={() => setRightTab(tab)}
-                    className={`px-3 py-1 rounded text-xs font-semibold cursor-pointer transition-colors ${
-                      rightTab === tab
+                    className={`px-3 py-1 rounded text-xs font-semibold cursor-pointer transition-colors ${rightTab === tab
                         ? "bg-white/15 text-white"
                         : "text-[#8b9ab8] hover:text-white hover:bg-white/[.07]"
-                    }`}
+                      }`}
                   >
                     {tab === "search" ? "搜尋" : "Tracker"}
                   </button>
@@ -271,11 +270,10 @@ export default function RuleViewer() {
                   <button
                     key={m.id}
                     onClick={() => handlePick(i)}
-                    className={`text-left px-3 py-2 rounded-[8px] border text-xs cursor-pointer transition-colors ${
-                      i === matchIndex
+                    className={`text-left px-3 py-2 rounded-[8px] border text-xs cursor-pointer transition-colors ${i === matchIndex
                         ? "border-[#52c41a]/50 bg-[#52c41a]/[.12] text-white"
                         : "border-white/10 bg-white/[.04] text-[#cfd6e6] hover:bg-white/[.08]"
-                    }`}
+                      }`}
                   >
                     <div className="font-semibold truncate">
                       <span className="text-white/40 mr-1.5">{i + 1}.</span>

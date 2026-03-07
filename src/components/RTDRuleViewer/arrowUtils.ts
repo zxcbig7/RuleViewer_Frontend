@@ -88,7 +88,7 @@ export function drawArrow(
   ctx.lineTo(x2, y2);
   ctx.stroke();
 
-  // 箭頭頭
+  // 箭頭起點終點
   const xA = x2 - headLen * Math.cos(angle - Math.PI / 6);
   const yA = y2 - headLen * Math.sin(angle - Math.PI / 6);
   const xB = x2 - headLen * Math.cos(angle + Math.PI / 6);
@@ -116,7 +116,7 @@ export function drawArrows(
   scale: number
 ) {
   const PRIMARY_COLOR   = "#374151"; // 主線：深灰
-  const SECONDARY_COLOR = "#ea580c"; // 副線：橘
+  const SECONDARY_COLOR = "#555555"; // 副線：橘
 
   arrows.forEach((a) => {
     const from = blocks.find((b) => b.id === a.from);
@@ -133,10 +133,10 @@ export function drawArrows(
 
     ctx.strokeStyle = color;
     ctx.fillStyle   = color;
-    ctx.lineWidth   = (a.isPrimary ? 1.8 : 1.2) / scale;
+    ctx.lineWidth   = (a.isPrimary ? 1.5 : 1.2) / scale;
 
     // 副線：虛線
-    ctx.setLineDash(a.isPrimary ? [] : [6 / scale, 4 / scale]);
+    ctx.setLineDash(a.isPrimary ? [] : [6 / scale, 3 / scale]);
 
     drawArrow(ctx, start.x, start.y, end.x, end.y, {
       isPrimary: a.isPrimary,

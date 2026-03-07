@@ -13,7 +13,7 @@
 //   Breadcrumb 可返回上一層
 // ============================================================
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import type { RuleData } from "./types";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -460,15 +460,61 @@ export type CaseQueryProps = {
 };
 
 export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) {
-  const [searchInput, setSearchInput]     = useState("");
-  const [mode, setMode]                   = useState<TrackerMode>({ tag: "idle" });
-  const [selectedDbVar, setSelectedDbVar] = useState<string | null>(null);
-  const [dbSource, setDbSource]           = useState<VariableSource | null>(null);
+  const [searchInput, setSearchInput]         = useState("");
+  const [dropOpen, setDropOpen]               = useState(false);
+  const [logHighlightIdx, setLogHighlightIdx] = useState(-1);
+  const [mode, setMode]                       = useState<TrackerMode>({ tag: "idle" });
+  const [selectedDbVar, setSelectedDbVar]     = useState<string | null>(null);
+  const [dbSource, setDbSource]               = useState<VariableSource | null>(null);
+  const searchWrapRef                         = useRef<HTMLDivElement>(null);
+  const logListRef                            = useRef<HTMLUListElement>(null);
 
   const sortedRules = useMemo(() => sortBlocks(rules), [rules]);
 
-  function handleSearch() {
-    const logName = parseLogName(searchInput);
+  // 從所有 VALUES 中萃取 [$...$] Log 名稱清單
+  const allLogNames = useMemo(() => {
+    const LOG_RE = /\[\$([^\$]+)\$\]/g;
+    const names  = new Set<string>();
+    for (const r of rules) {
+      for (const v of r.VALUES) {
+        if (!v.VALUE) continue;
+        let m: RegExpExecArray | null;
+        LOG_RE.lastIndex = 0;
+        while ((m = LOG_RE.exec(v.VALUE)) !== null) names.add(m[1]);
+      }
+    }
+    return [...names].sort();
+  }, [rules]);
+
+  // 依輸入過濾（去除 [$...$] 包裝後比對）
+  const filteredLogs = useMemo(() => {
+    const kw = searchInput.replace(/^\[\$|\$\]$/g, "").trim().toLowerCase();
+    if (!kw) return allLogNames;
+    return allLogNames.filter((n) => n.toLowerCase().includes(kw));
+  }, [allLogNames, searchInput]);
+
+  // 點外部關閉下拉
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node))
+        setDropOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // filter 變化時重置 highlight
+  useEffect(() => { setLogHighlightIdx(-1); }, [filteredLogs]);
+
+  // 高亮項目捲入可視範圍
+  useEffect(() => {
+    if (logHighlightIdx < 0 || !logListRef.current) return;
+    const items = logListRef.current.querySelectorAll<HTMLLIElement>("li[data-item]");
+    items[logHighlightIdx]?.scrollIntoView({ block: "nearest" });
+  }, [logHighlightIdx]);
+
+  function handleSearch(overrideName?: string) {
+    const logName = overrideName ?? parseLogName(searchInput);
     if (!logName || sortedRules.length === 0) return;
     const logBlocks   = findLogBlocks(logName, sortedRules);
     const relatedVars = extractVarsFromLogExpr(logName, logBlocks);
@@ -522,19 +568,80 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
     );
   }
 
-  // ── 搜尋列（緊湊版） ──────────────────────────────────────────
+  // ── 搜尋列（含 Log 下拉 + 鍵盤導航） ────────────────────────
+  function handleLogKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setDropOpen(true);
+      setLogHighlightIdx((i) => Math.min(i + 1, filteredLogs.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setLogHighlightIdx((i) => Math.max(i - 1, -1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (dropOpen && logHighlightIdx >= 0 && filteredLogs[logHighlightIdx]) {
+        const name = filteredLogs[logHighlightIdx];
+        setSearchInput(`[$${name}$]`);
+        setDropOpen(false);
+        setLogHighlightIdx(-1);
+        handleSearch(name);
+      } else {
+        setDropOpen(false);
+        handleSearch();
+      }
+    } else if (e.key === "Escape") {
+      setDropOpen(false);
+      setLogHighlightIdx(-1);
+    }
+  }
+
   const searchBar = (
-    <div className="flex items-center gap-1.5 flex-shrink-0">
-      <input
-        className="flex-1 min-w-0 rounded px-2 py-1 bg-white/10 text-white border border-white/20
-          placeholder:text-white/25 text-xs outline-none focus:border-white/40 font-mono"
-        placeholder="反藍 Log，例：EQUIP_DOWN"
-        value={searchInput}
-        onChange={(e) => setSearchInput(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-      />
+    <div ref={searchWrapRef} className="flex items-center gap-1.5 flex-shrink-0 relative">
+      <div className="flex-1 min-w-0 relative">
+        <input
+          className="w-full rounded px-2 py-1 bg-white/10 text-white border border-white/20
+            placeholder:text-white/25 text-xs outline-none focus:border-white/40 font-mono"
+          placeholder="[$LOG_NAME$]"
+          value={searchInput}
+          onChange={(e) => { setSearchInput(e.target.value); setDropOpen(true); setLogHighlightIdx(-1); }}
+          onFocus={() => setDropOpen(true)}
+          onKeyDown={handleLogKeyDown}
+        />
+
+        {dropOpen && filteredLogs.length > 0 && (
+          <ul
+            ref={logListRef}
+            className="absolute top-full left-0 mt-1 w-full max-h-[200px] overflow-y-auto
+              rounded border border-white/20 bg-[#1a2540] shadow-xl z-[2000] list-none p-0 m-0"
+          >
+            {filteredLogs.map((name, i) => (
+              <li
+                key={name}
+                data-item
+                className={`px-2.5 py-1.5 text-xs font-mono cursor-pointer flex items-center gap-1 ${
+                  i === logHighlightIdx
+                    ? "bg-white/15 text-white"
+                    : "text-[#cfd6e6] hover:bg-white/10 hover:text-white"
+                }`}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setSearchInput(`[$${name}$]`);
+                  setDropOpen(false);
+                  setLogHighlightIdx(-1);
+                  handleSearch(name);
+                }}
+              >
+                <span className="text-red-400/60">[$</span>
+                <span className="text-red-300 font-bold">{name}</span>
+                <span className="text-red-400/60">$]</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <button
-        onClick={handleSearch}
+        onClick={() => { setDropOpen(false); handleSearch(); }}
         className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex-shrink-0 cursor-pointer transition-colors"
       >
         Trace
