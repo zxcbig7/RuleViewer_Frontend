@@ -556,6 +556,88 @@ const APF_RECIPE_BUILDER: RuleData[] = [
   },
 ];
 
+// ── 變數資料來源 Mock（實際由後端 API 提供） ──────────────────
+
+export type VariableSource = {
+  variable: string;
+  varType: "INPUT" | "COMPUTED" | "LOCAL";
+  description?: string;
+  sourceTable?: string;
+  sourceColumn?: string;
+  filterConditions?: string;
+  sqlHint?: string;
+};
+
+export const MOCK_VAR_SOURCES: Record<string, VariableSource> = {
+  LOT_ID:        { variable: "LOT_ID",        varType: "INPUT",    description: "呼叫端傳入的批次 ID" },
+  EQUIP_CODE:    { variable: "EQUIP_CODE",    varType: "INPUT",    description: "呼叫端傳入的設備代碼" },
+  EQUIP_ID:      { variable: "EQUIP_ID",      varType: "INPUT",    description: "呼叫端傳入的設備 ID" },
+  RECIPE_NAME:   { variable: "RECIPE_NAME",   varType: "INPUT",    description: "呼叫端傳入的 Recipe 名稱" },
+  STEP_ID:       { variable: "STEP_ID",       varType: "INPUT",    description: "呼叫端傳入的製程步驟 ID" },
+  SOURCE_PATH:   { variable: "SOURCE_PATH",   varType: "INPUT",    description: "呼叫端傳入的 APF 原始資料路徑" },
+  OUTPUT_FORMAT: { variable: "OUTPUT_FORMAT", varType: "INPUT",    description: "呼叫端指定的輸出格式" },
+  FILE_SIZE: {
+    variable: "FILE_SIZE", varType: "COMPUTED",
+    sourceTable: "FILE_SYSTEM", sourceColumn: "FILE_SIZE_BYTES",
+    filterConditions: "FILE_PATH = :source_path",
+    sqlHint: "SELECT FILE_SIZE_BYTES\nFROM FILE_SYSTEM\nWHERE FILE_PATH = :source_path",
+  },
+  RECIPE_VER: {
+    variable: "RECIPE_VER", varType: "COMPUTED",
+    sourceTable: "RECIPE_MASTER", sourceColumn: "VERSION",
+    filterConditions: "RECIPE_NAME = :recipe_name\nAND EQUIP_CODE = :equip_code\nAND EFFECTIVE_DATE <= SYSDATE",
+    sqlHint: "SELECT VERSION\nFROM RECIPE_MASTER\nWHERE RECIPE_NAME = :recipe_name\n  AND EQUIP_CODE = :equip_code\n  AND EFFECTIVE_DATE <= SYSDATE\nORDER BY EFFECTIVE_DATE DESC\nFETCH FIRST 1 ROWS ONLY",
+  },
+  LOT_GRADE: {
+    variable: "LOT_GRADE", varType: "COMPUTED",
+    sourceTable: "WIP_LOT", sourceColumn: "GRADE",
+    filterConditions: "LOT_ID = :lot_id",
+    sqlHint: "SELECT GRADE\nFROM WIP_LOT\nWHERE LOT_ID = :lot_id",
+  },
+  HOLD_FLAG: {
+    variable: "HOLD_FLAG", varType: "COMPUTED",
+    sourceTable: "WIP_LOT", sourceColumn: "HOLD_FLAG",
+    filterConditions: "LOT_ID = :lot_id",
+    sqlHint: "SELECT HOLD_FLAG\nFROM WIP_LOT\nWHERE LOT_ID = :lot_id",
+  },
+  EQUIP_STATUS: {
+    variable: "EQUIP_STATUS", varType: "COMPUTED",
+    sourceTable: "EQP_STATUS", sourceColumn: "STATUS",
+    filterConditions: "EQUIP_CODE = :equip_code\nAND RECORD_TIME = (\n  SELECT MAX(RECORD_TIME) FROM EQP_STATUS\n  WHERE EQUIP_CODE = :equip_code\n)",
+    sqlHint: "SELECT STATUS\nFROM EQP_STATUS\nWHERE EQUIP_CODE = :equip_code\n  AND RECORD_TIME = (\n    SELECT MAX(RECORD_TIME) FROM EQP_STATUS\n    WHERE EQUIP_CODE = :equip_code\n  )",
+  },
+  WAIT_HR: {
+    variable: "WAIT_HR", varType: "COMPUTED",
+    sourceTable: "WIP_QUEUE", sourceColumn: "WAIT_HOURS",
+    filterConditions: "LOT_ID = :lot_id AND STAGE = :stage",
+    sqlHint: "SELECT WAIT_HOURS\nFROM WIP_QUEUE\nWHERE LOT_ID = :lot_id\n  AND STAGE = :stage",
+  },
+  MAX_WAIT_HR: {
+    variable: "MAX_WAIT_HR", varType: "COMPUTED",
+    sourceTable: "STAGE_CONFIG", sourceColumn: "MAX_WAIT_HOURS",
+    filterConditions: "STAGE = :stage AND LOT_GRADE = :lot_grade",
+    sqlHint: "SELECT MAX_WAIT_HOURS\nFROM STAGE_CONFIG\nWHERE STAGE = :stage\n  AND LOT_GRADE = :lot_grade",
+  },
+  QUEUE_DEPTH: {
+    variable: "QUEUE_DEPTH", varType: "COMPUTED",
+    sourceTable: "EQP_QUEUE", sourceColumn: "QUEUE_COUNT",
+    filterConditions: "EQUIP_CODE = :equip_code",
+    sqlHint: "SELECT QUEUE_COUNT\nFROM EQP_QUEUE\nWHERE EQUIP_CODE = :equip_code",
+  },
+  MAX_QUEUE: {
+    variable: "MAX_QUEUE", varType: "COMPUTED",
+    sourceTable: "EQP_CONFIG", sourceColumn: "MAX_QUEUE_SIZE",
+    filterConditions: "EQUIP_CODE = :equip_code",
+    sqlHint: "SELECT MAX_QUEUE_SIZE\nFROM EQP_CONFIG\nWHERE EQUIP_CODE = :equip_code",
+  },
+  APPLY_STATUS: {
+    variable: "APPLY_STATUS", varType: "COMPUTED",
+    sourceTable: "RECIPE_APPLY_LOG", sourceColumn: "STATUS",
+    filterConditions: "RECIPE_NAME = :recipe_name AND EQUIP_CODE = :equip_code",
+    sqlHint: "SELECT STATUS\nFROM RECIPE_APPLY_LOG\nWHERE RECIPE_NAME = :recipe_name\n  AND EQUIP_CODE = :equip_code\nORDER BY APPLY_TIME DESC\nFETCH FIRST 1 ROWS ONLY",
+  },
+};
+
 // ── 統一查詢入口 ──────────────────────────────────────────────
 export const MOCK_RULE_DATA: Record<string, RuleData[]> = {
   "APF_LOT_VALIDATOR":  APF_LOT_VALIDATOR,

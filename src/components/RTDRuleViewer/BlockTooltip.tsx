@@ -46,7 +46,7 @@ export function BlockTooltip({ block, mousePos, canvasSize }: BlockTooltipProps)
   return (
     <div
       ref={ref}
-      className="absolute bg-[rgba(30,30,30,0.9)] text-white px-2 py-1.5 rounded text-xs pointer-events-none whitespace-nowrap"
+      className="absolute bg-black/90 text-white px-2 py-1.5 rounded text-xs pointer-events-none whitespace-nowrap"
       style={{
         left: pos?.x ?? -9999,
         top: pos?.y ?? -9999,

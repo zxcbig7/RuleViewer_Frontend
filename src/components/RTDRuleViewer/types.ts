@@ -79,4 +79,5 @@ export type Side = "left" | "right" | "top" | "bottom";
 // ── RuleView 暴露給父層的 handle ────────────────────────────
 export type RuleViewHandle = {
   focusBlockById: (id: string) => void;
+  openInspectorById: (id: string) => void;
 };

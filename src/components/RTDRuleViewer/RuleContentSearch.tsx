@@ -151,7 +151,7 @@ export function SearchNavigator({ total, index, onPrev, onNext }: SearchNavigato
   if (total === 0) return null;
 
   return (
-    <div className="flex items-center gap-1 flex-shrink-0">
+    <div className="flex items-center gap-1 shrink-0">
       <button
         onClick={onPrev}
         disabled={index <= 0}
@@ -160,7 +160,7 @@ export function SearchNavigator({ total, index, onPrev, onNext }: SearchNavigato
       >
         ‹
       </button>
-      <span className="text-xs text-[#cfd6e6] px-1 whitespace-nowrap tabular-nums">
+      <span className="text-xs text-slate-300 px-1 whitespace-nowrap tabular-nums">
         {index + 1} / {total}
       </span>
       <button

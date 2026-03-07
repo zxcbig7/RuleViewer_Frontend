@@ -32,6 +32,10 @@ export default function RuleViewer() {
   const [matchedBlockList, setMatchedBlockList] = useState<MatchResult[] | null>(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [matchIndex, setMatchIndex] = useState(0);
+  const [searchKey, setSearchKey] = useState(0);
+
+  // ── 搜尋選中 Block ────────────────────────────────────────
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
   // ── Tracker 高亮 ──────────────────────────────────────────
   const [trackerLogIds, setTrackerLogIds] = useState<string[]>([]);
@@ -96,6 +100,14 @@ export default function RuleViewer() {
 
   // Rule 變更
   useEffect(() => {
+    setMatchedBlockList(null);
+    setSearchKeyword("");
+    setMatchIndex(0);
+    setSelectedBlockId(null);
+    setSearchKey((k) => k + 1);
+    setTrackerLogIds([]);
+    setTrackerVarIds([]);
+
     if (!selectedRule) return;
     if (selectedRule === DEV_MOCK_RULE_NAME) { setRules(DEV_MOCK_RULES); return; }
     if (selectedRule in MOCK_RULE_DATA) { setRules(MOCK_RULE_DATA[selectedRule]); return; }
@@ -119,6 +131,7 @@ export default function RuleViewer() {
   function handlePick(i: number) {
     if (!matchedBlockList) return;
     setMatchIndex(i);
+    setSelectedBlockId(matchedBlockList[i].id);
     ruleViewRef.current?.focusBlockById(matchedBlockList[i].id);
   }
 
@@ -129,7 +142,7 @@ export default function RuleViewer() {
     return (
       <>
         {snippet.slice(0, idx)}
-        <span className="text-[#fadb14] font-semibold">{snippet.slice(idx, idx + kw.length)}</span>
+        <span className="text-yellow-300 font-semibold">{snippet.slice(idx, idx + kw.length)}</span>
         {snippet.slice(idx + kw.length)}
       </>
     );
@@ -139,7 +152,7 @@ export default function RuleViewer() {
     <div className="h-full min-h-0 flex flex-col gap-3 p-3">
 
       {/* ── TopBar：Rule 選擇 ── */}
-      <div className="rounded-xl px-4 py-2.5 bg-[#1f2a44] flex items-center gap-3 flex-shrink-0">
+      <div className="rounded-xl px-4 py-2.5 bg-slate-800 flex items-center gap-3 shrink-0">
         <RuleDropdownSearch
           phases={phases}
           selectedPhase={selectedPhase}
@@ -153,11 +166,12 @@ export default function RuleViewer() {
       <div className="flex-1 min-h-0 flex">
 
         {/* Canvas */}
-        <div className="flex-1 min-w-0 rounded-xl bg-white border border-black/[.12] relative overflow-hidden">
+        <div className="flex-1 min-w-0 rounded-xl bg-white border border-black/12 relative overflow-hidden">
           <RuleView
             ref={ruleViewRef}
             rules={rules}
             matchedBlockIds={matchedBlockIds}
+            selectedBlockId={selectedBlockId}
             trackerLogIds={trackerLogIds.length ? new Set(trackerLogIds) : undefined}
             trackerVarIds={trackerVarIds.length ? new Set(trackerVarIds) : undefined}
           />
@@ -165,7 +179,7 @@ export default function RuleViewer() {
 
         {/* 拖曳分隔線（收合時不可見） */}
         <div
-          className={`w-2 flex-shrink-0 mx-1 flex items-center justify-center cursor-col-resize select-none group self-stretch ${rightCollapsed ? "invisible" : ""}`}
+          className={`w-2 shrink-0 mx-1 flex items-center justify-center cursor-col-resize select-none group self-stretch ${rightCollapsed ? "invisible" : ""}`}
           onMouseDown={(e) => {
             if (rightCollapsed) return;
             e.preventDefault();
@@ -181,7 +195,7 @@ export default function RuleViewer() {
 
         {/* 右側面板（始終掛載，收合時僅顯示展開按鈕） */}
         <div
-          className={`flex-shrink-0 rounded-xl bg-[#0e1428] border border-black/[.12] text-white flex flex-col min-h-0 overflow-hidden ${rightCollapsed ? "" : "p-3"}`}
+          className={`shrink-0 rounded-xl bg-slate-900 border border-black/12 text-white flex flex-col min-h-0 overflow-hidden ${rightCollapsed ? "" : "p-3"}`}
           style={{ width: rightCollapsed ? 32 : rightPanelWidth }}
         >
           {/* 收合狀態：僅展開按鈕 */}
@@ -199,15 +213,24 @@ export default function RuleViewer() {
           <div className={rightCollapsed ? "hidden" : "flex-1 min-h-0 flex flex-col"}>
 
             {/* 分頁標頭 */}
-            <div className="flex items-center justify-between gap-2 flex-shrink-0">
+            <div className="flex items-center justify-between gap-2 shrink-0">
               <div className="flex gap-0.5">
                 {(["search", "tracker"] as RightTab[]).map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => setRightTab(tab)}
+                    onClick={() => {
+                      if (tab !== "search" && rightTab === "search") {
+                        setMatchedBlockList(null);
+                        setSearchKeyword("");
+                        setMatchIndex(0);
+                        setSelectedBlockId(null);
+                        setSearchKey((k) => k + 1);
+                      }
+                      setRightTab(tab);
+                    }}
                     className={`px-3 py-1 rounded text-xs font-semibold cursor-pointer transition-colors ${rightTab === tab
                         ? "bg-white/15 text-white"
-                        : "text-[#8b9ab8] hover:text-white hover:bg-white/[.07]"
+                        : "text-slate-400 hover:text-white hover:bg-white/7"
                       }`}
                   >
                     {tab === "search" ? "搜尋" : "Tracker"}
@@ -217,7 +240,7 @@ export default function RuleViewer() {
               <button
                 onClick={() => setRightCollapsed(true)}
                 title="收合面板"
-                className="w-6 h-6 flex items-center justify-center rounded text-white/50 hover:text-white hover:bg-white/10 cursor-pointer text-base leading-none flex-shrink-0"
+                className="w-6 h-6 flex items-center justify-center rounded text-white/50 hover:text-white hover:bg-white/10 cursor-pointer text-base leading-none shrink-0"
               >
                 ›
               </button>
@@ -229,8 +252,9 @@ export default function RuleViewer() {
             <div className={rightTab === "search" ? "flex-1 min-h-0 flex flex-col gap-2" : "hidden"}>
 
               {/* 搜尋列 */}
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <RuleContentSearch
+                  key={searchKey}
                   rules={rules}
                   onMatchChange={(list, kw) => {
                     setMatchedBlockList(list);
@@ -242,14 +266,14 @@ export default function RuleViewer() {
 
               {/* 導覽列 + 結果數 */}
               {matchedBlockList && (
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <SearchNavigator
                     total={matchedBlockList.length}
                     index={matchIndex}
                     onPrev={handlePrev}
                     onNext={handleNext}
                   />
-                  <span className="ml-auto text-xs text-[#8b9ab8] flex-shrink-0">
+                  <span className="ml-auto text-xs text-slate-400 shrink-0">
                     {matchedBlockList.length} match{matchedBlockList.length !== 1 ? "es" : ""}
                   </span>
                 </div>
@@ -258,21 +282,22 @@ export default function RuleViewer() {
               {/* 結果列表 */}
               <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-1.5">
                 {!selectedRule && (
-                  <p className="text-[#8b9ab8] text-xs">請先選擇 Rule。</p>
+                  <p className="text-slate-400 text-xs">請先選擇 Rule。</p>
                 )}
                 {selectedRule && !matchedBlockList && (
-                  <p className="text-[#8b9ab8] text-xs">在上方輸入關鍵字，搜尋相關 Block。</p>
+                  <p className="text-slate-400 text-xs">在上方輸入關鍵字，搜尋相關 Block。</p>
                 )}
                 {matchedBlockList?.length === 0 && (
-                  <p className="text-[#8b9ab8] text-xs">No matches found.</p>
+                  <p className="text-slate-400 text-xs">No matches found.</p>
                 )}
                 {matchedBlockList?.map((m, i) => (
                   <button
                     key={m.id}
                     onClick={() => handlePick(i)}
-                    className={`text-left px-3 py-2 rounded-[8px] border text-xs cursor-pointer transition-colors ${i === matchIndex
-                        ? "border-[#52c41a]/50 bg-[#52c41a]/[.12] text-white"
-                        : "border-white/10 bg-white/[.04] text-[#cfd6e6] hover:bg-white/[.08]"
+                    onDoubleClick={() => ruleViewRef.current?.openInspectorById(m.id)}
+                    className={`text-left px-3 py-2 rounded-lg border text-xs cursor-pointer transition-colors ${i === matchIndex
+                        ? "border-green-500/50 bg-green-500/10 text-white"
+                        : "border-white/10 bg-white/4 text-slate-300 hover:bg-white/8"
                       }`}
                   >
                     <div className="font-semibold truncate">
@@ -292,6 +317,7 @@ export default function RuleViewer() {
             {/* ── Tracker 分頁 ── */}
             <div className={rightTab === "tracker" ? "flex-1 min-h-0 flex flex-col" : "hidden"}>
               <CaseQuery
+                key={selectedRule}
                 rules={rules}
                 selectedRule={selectedRule}
                 onHighlight={(logIds, varIds) => {

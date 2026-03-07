@@ -24,6 +24,7 @@ import { BlockInspector } from "./BlockInspector";
 type RuleViewProps = {
   rules: RuleData[];
   matchedBlockIds: Set<string> | null;
+  selectedBlockId?: string | null;
   trackerLogIds?: Set<string>;
   trackerVarIds?: Set<string>;
 };
@@ -35,7 +36,7 @@ type InspectorState = {
 };
 
 export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
-  function RuleView({ rules, matchedBlockIds, trackerLogIds, trackerVarIds }, ref) {
+  function RuleView({ rules, matchedBlockIds, selectedBlockId, trackerLogIds, trackerVarIds }, ref) {
 
     // ── Canvas refs ────────────────────────────────────────
     const canvasStageRef = useRef<HTMLDivElement | null>(null);
@@ -124,7 +125,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
 
         if (showGridRef.current) drawGrid(ctx, view, sizeRef.current);
         drawArrows(ctx, blocks, arrows, view.scale);
-        drawBlocks(ctx, blocks, inspectedBlockIds, matchedBlockIds, trackerLogIds, trackerVarIds);
+        drawBlocks(ctx, blocks, inspectedBlockIds, matchedBlockIds, selectedBlockId, trackerLogIds, trackerVarIds);
 
         // ── Tracker 連線（var 模式：log → var blocks） ─────
         if (trackerLogIds?.size && trackerVarIds?.size) {
@@ -207,7 +208,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
           if (mmCtx) drawMinimap(mmCtx, blocks, viewRef.current, mm, sizeRef.current);
         }
       },
-      [arrows, inspectedBlockIds, matchedBlockIds, trackerLogIds, trackerVarIds]
+      [arrows, inspectedBlockIds, matchedBlockIds, selectedBlockId, trackerLogIds, trackerVarIds]
     );
 
     // ── 初始化 Canvas（只在 blocks 變更時重設畫布尺寸） ──
@@ -520,7 +521,27 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
       [blocks, focusBlock]
     );
 
-    useImperativeHandle(ref, () => ({ focusBlockById }), [focusBlockById]);
+    const openInspectorById = useCallback(
+      (id: string) => {
+        const b = blocks.find((x) => x.id === id);
+        if (!b) return;
+        focusBlock(b);
+        const { w, h } = sizeRef.current;
+        const mx = Math.max(0, w / 2 - 170);
+        const my = Math.max(0, h / 4);
+        setInspectors((prev) => {
+          if (prev.some((i) => i.block.id === b.id)) return prev;
+          return [...prev, { block: b, x: mx, y: my }];
+        });
+        setFocusStack((prev) => {
+          if (prev.includes(b.id)) return prev;
+          return [...prev, b.id];
+        });
+      },
+      [blocks, focusBlock]
+    );
+
+    useImperativeHandle(ref, () => ({ focusBlockById, openInspectorById }), [focusBlockById, openInspectorById]);
 
     // ── 縮放按鈕 ──────────────────────────────────────────
     const zoomBy = useCallback((factor: number) => {
@@ -602,7 +623,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
         {/* Minimap + Controls */}
         <div className="absolute left-5 bottom-5 flex flex-col gap-1.5">
           {/* Minimap — 用 hidden 隱藏而非 unmount，保持 ref 與事件監聽器有效 */}
-          <div className={`border border-[#9ca3af] bg-white self-start${showMinimap ? "" : " hidden"}`}>
+          <div className={`border border-gray-400 bg-white self-start${showMinimap ? "" : " hidden"}`}>
             <canvas ref={minimapRef} width={minimapSize.w} height={minimapSize.h} style={{ display: "block" }} />
           </div>
 
@@ -621,7 +642,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
               title="Toggle connector lines"
               className={`w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors ${showConnectors
                   ? "bg-indigo-500 border-indigo-600 text-white hover:bg-indigo-600"
-                  : "bg-white border-[#9ca3af] text-[#9ca3af] hover:bg-[#f3f4f6]"
+                  : "bg-white border-gray-400 text-gray-400 hover:bg-gray-100"
                 }`}
             >╌</button>
             {/* Grid toggle  # = grid */}
@@ -637,7 +658,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
               title="Toggle grid"
               className={`w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors ${showGrid
                   ? "bg-indigo-500 border-indigo-600 text-white hover:bg-indigo-600"
-                  : "bg-white border-[#9ca3af] text-[#9ca3af] hover:bg-[#f3f4f6]"
+                  : "bg-white border-gray-400 text-gray-400 hover:bg-gray-100"
                 }`}
             >#</button>
             {/* Minimap toggle  ⊡ = overview box */}
@@ -646,26 +667,26 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
               title="Toggle minimap"
               className={`w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors ${showMinimap
                   ? "bg-indigo-500 border-indigo-600 text-white hover:bg-indigo-600"
-                  : "bg-white border-[#9ca3af] text-[#9ca3af] hover:bg-[#f3f4f6]"
+                  : "bg-white border-gray-400 text-gray-400 hover:bg-gray-100"
                 }`}
             >⊡</button>
             {/* Divider */}
-            <div className="w-px h-6 bg-[#d1d5db]" />
+            <div className="w-px h-6 bg-gray-300" />
             {/* Zoom buttons */}
             <button
               onClick={() => zoomBy(1.25)}
               title="Zoom in"
-              className="w-9 h-9 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-base hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
+              className="w-9 h-9 flex items-center justify-center rounded bg-white border border-gray-400 text-gray-700 text-base hover:bg-gray-100 cursor-pointer shadow-sm"
             >+</button>
             <button
               onClick={() => zoomBy(0.8)}
               title="Zoom out"
-              className="w-9 h-9 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-base hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
+              className="w-9 h-9 flex items-center justify-center rounded bg-white border border-gray-400 text-gray-700 text-base hover:bg-gray-100 cursor-pointer shadow-sm"
             >−</button>
             <button
               onClick={zoomReset}
               title="Reset zoom"
-              className="px-2 h-9 flex items-center justify-center rounded bg-white border border-[#9ca3af] text-[#374151] text-xs hover:bg-[#f3f4f6] cursor-pointer shadow-sm"
+              className="px-2 h-9 flex items-center justify-center rounded bg-white border border-gray-400 text-gray-700 text-xs hover:bg-gray-100 cursor-pointer shadow-sm"
             >1:1</button>
           </div>
         </div>

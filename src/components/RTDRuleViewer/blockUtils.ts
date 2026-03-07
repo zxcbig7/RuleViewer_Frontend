@@ -78,6 +78,7 @@ export function drawBlock(
   b: Block,
   highlighted: boolean,
   isMatched: boolean,
+  isSelected: boolean,
   trackerRole?: "log" | "var"
 ) {
   ctx.save();
@@ -97,7 +98,15 @@ export function drawBlock(
   }
 
   // 邊框
-  if (highlighted) {
+  if (isSelected) {
+    ctx.save();
+    ctx.strokeStyle = "#22c55e";
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = "rgba(34,197,94,0.7)";
+    ctx.shadowBlur = 10;
+    ctx.strokeRect(b.x - 2, b.y - 2, b.w + 4, b.h + 4);
+    ctx.restore();
+  } else if (highlighted) {
     ctx.save();
     ctx.strokeStyle = "#2563eb";
     ctx.lineWidth = 2;
@@ -139,6 +148,7 @@ export function drawBlocks(
   blocks: Block[],
   inspectedIds: Set<string>,
   matchedIds: Set<string> | null,
+  selectedId?: string | null,
   trackerLogIds?: Set<string>,
   trackerVarIds?: Set<string>
 ) {
@@ -148,6 +158,7 @@ export function drawBlocks(
       b,
       inspectedIds.has(b.id),
       matchedIds ? matchedIds.has(b.id) : true,
+      !!selectedId && b.id === selectedId,
       trackerLogIds?.has(b.id) ? "log" : trackerVarIds?.has(b.id) ? "var" : undefined
     )
   );

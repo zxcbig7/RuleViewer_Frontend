@@ -92,9 +92,7 @@ export function RuleDropdownSearch({
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (ruleOpen && ruleHighlightIdx >= 0 && filteredRules[ruleHighlightIdx]) {
-        const opt = filteredRules[ruleHighlightIdx];
-        confirmRule(opt);
-        handleLoad(opt);
+        confirmRule(filteredRules[ruleHighlightIdx]);
       } else if (pendingRule) {
         handleLoad();
       }
@@ -123,12 +121,12 @@ export function RuleDropdownSearch({
 
       {/* ── Stage 2: Rule Name（Phase 選完才顯示） ── */}
       {selectedPhase && (
-        <div ref={ruleWrapperRef} className="relative w-[240px]">
+        <div ref={ruleWrapperRef} className="relative w-60">
           <input
             ref={ruleInputRef}
-            className="w-full h-[32px] px-3 text-sm rounded border outline-none
-              bg-white border-[#d9d9d9] placeholder:text-[#bfbfbf]
-              cursor-text focus:border-[#4096ff] focus:shadow-[0_0_0_2px_rgba(5,145,255,0.1)]"
+            className="w-full h-8 px-3 pr-7 text-sm rounded border outline-none
+              bg-white border-gray-300 placeholder:text-gray-400
+              cursor-text focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10"
             placeholder="搜尋 Rule Name"
             value={ruleInput}
             onFocus={() => setRuleOpen(true)}
@@ -139,14 +137,29 @@ export function RuleDropdownSearch({
             }}
             onKeyDown={handleRuleKeyDown}
           />
+          {ruleInput && (
+            <button
+              tabIndex={-1}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setRuleInput("");
+                setPendingRule(null);
+                setRuleOpen(false);
+                ruleInputRef.current?.focus();
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer leading-none"
+            >
+              ×
+            </button>
+          )}
 
           {ruleOpen && (
             <ul
               ref={ruleListRef}
-              className="absolute top-full left-0 mt-1 w-full max-h-[220px] overflow-y-auto border border-[#d9d9d9] bg-white shadow-md list-none p-0 m-0 z-[2000] rounded"
+              className="absolute top-full left-0 mt-1 w-full max-h-55 overflow-y-auto border border-gray-300 bg-white shadow-md list-none p-0 m-0 z-2000 rounded"
             >
               {filteredRules.length === 0 ? (
-                <li className="px-3 py-2 text-[#bfbfbf] text-sm cursor-default">No matches</li>
+                <li className="px-3 py-2 text-gray-400 text-sm cursor-default">No matches</li>
               ) : (
                 filteredRules.map((opt, i) => (
                   <li
@@ -154,10 +167,10 @@ export function RuleDropdownSearch({
                     data-item
                     className={`px-3 py-2 text-sm cursor-pointer ${
                       i === ruleHighlightIdx
-                        ? "bg-[#bae0ff] text-[#1677ff]"
+                        ? "bg-blue-200 text-blue-500"
                         : opt === pendingRule
-                        ? "bg-[#e6f4ff] text-[#1677ff]"
-                        : "hover:bg-[#f5f5f5]"
+                        ? "bg-blue-50 text-blue-500"
+                        : "hover:bg-gray-100"
                     }`}
                     onMouseDown={(e) => {
                       e.preventDefault();
@@ -178,10 +191,10 @@ export function RuleDropdownSearch({
         <button
           onClick={() => handleLoad()}
           disabled={!canLoad}
-          className={`h-[32px] px-4 rounded text-sm font-semibold transition-colors ${
+          className={`h-8 px-4 rounded text-sm font-semibold transition-colors ${
             canLoad
-              ? "bg-[#1677ff] text-white hover:bg-[#4096ff] cursor-pointer"
-              : "bg-[#f5f5f5] text-[#00000040] cursor-not-allowed border border-[#d9d9d9]"
+              ? "bg-blue-500 text-white hover:bg-blue-400 cursor-pointer"
+              : "bg-gray-100 text-black/25 cursor-not-allowed border border-gray-300"
           }`}
         >
           載入

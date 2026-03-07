@@ -10,7 +10,7 @@ import RuleViewerLayout from "./components/RuleViewer/Layout";
 import TestBlockInspector from "./pages/TestBlockInspector";
 import TestRuleView from "./pages/TestRuleView";
 import TestControls from "./pages/TestControls";
-
+import AuthPage from "./pages/AuthPage";
 
 import SudokuSolver from "./components/Sudoku/SudokuSolver";
 import ErrorPage from "./pages/defaultErrorPage";
@@ -19,6 +19,9 @@ import ErrorPage from "./pages/defaultErrorPage";
 function App() {
   return (
     <Routes>
+      {/* 獨立頁面：不含 sidebar 佈局 */}
+      <Route path="/login" element={<AuthPage />} />
+
       {/* HomePage 永遠存在 */}
       <Route path="/" element={<HomePage />}>
 

@@ -2,7 +2,7 @@
 // CaseQuery.tsx  (Tracker mode)
 //
 // 反藍 Log 溯源流程：
-//   Step 1. 搜尋反藍 Log（[$LOG_NAME$]）
+//   Step 1. 搜尋反藍 Log（$LOG_NAME$）
 //           → 找出 VALUE 含該 Log 的 Block，顯示卡片
 //           → 解析 VALUE 表達式，列出相關變數 Pill
 //
@@ -10,100 +10,21 @@
 //           → 找出定義該變數（COLUMN1 = 變數名）的 Block，顯示卡片
 //           → 只有一層，不自動繼續展開
 //
-//   Breadcrumb 可返回上一層
+//   Breadcrumb 可返回上層
 // ============================================================
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { RuleData } from "./types";
+import { MOCK_VAR_SOURCES } from "./devMock";
+import type { VariableSource } from "./devMock";
 
 // ─── Types ────────────────────────────────────────────────────
-
-type VariableSource = {
-  variable: string;
-  varType: "INPUT" | "COMPUTED" | "LOCAL";
-  description?: string;
-  sourceTable?: string;
-  sourceColumn?: string;
-  filterConditions?: string;
-  sqlHint?: string;
-};
 
 type TrackerMode =
   | { tag: "idle" }
   | { tag: "log"; logName: string; logBlocks: RuleData[]; relatedVars: string[] }
   | { tag: "var"; logName: string; varName: string; varBlocks: RuleData[] };
 
-// ─── Mock 資料來源（實際由後端 API 提供） ─────────────────────
-
-const MOCK_VAR_SOURCES: Record<string, VariableSource> = {
-  LOT_ID:        { variable: "LOT_ID",        varType: "INPUT",    description: "呼叫端傳入的批次 ID" },
-  EQUIP_CODE:    { variable: "EQUIP_CODE",    varType: "INPUT",    description: "呼叫端傳入的設備代碼" },
-  EQUIP_ID:      { variable: "EQUIP_ID",      varType: "INPUT",    description: "呼叫端傳入的設備 ID" },
-  RECIPE_NAME:   { variable: "RECIPE_NAME",   varType: "INPUT",    description: "呼叫端傳入的 Recipe 名稱" },
-  STEP_ID:       { variable: "STEP_ID",       varType: "INPUT",    description: "呼叫端傳入的製程步驟 ID" },
-  SOURCE_PATH:   { variable: "SOURCE_PATH",   varType: "INPUT",    description: "呼叫端傳入的 APF 原始資料路徑" },
-  OUTPUT_FORMAT: { variable: "OUTPUT_FORMAT", varType: "INPUT",    description: "呼叫端指定的輸出格式" },
-  FILE_SIZE: {
-    variable: "FILE_SIZE", varType: "COMPUTED",
-    sourceTable: "FILE_SYSTEM", sourceColumn: "FILE_SIZE_BYTES",
-    filterConditions: "FILE_PATH = :source_path",
-    sqlHint: "SELECT FILE_SIZE_BYTES\nFROM FILE_SYSTEM\nWHERE FILE_PATH = :source_path",
-  },
-  RECIPE_VER: {
-    variable: "RECIPE_VER", varType: "COMPUTED",
-    sourceTable: "RECIPE_MASTER", sourceColumn: "VERSION",
-    filterConditions: "RECIPE_NAME = :recipe_name\nAND EQUIP_CODE = :equip_code\nAND EFFECTIVE_DATE <= SYSDATE",
-    sqlHint: "SELECT VERSION\nFROM RECIPE_MASTER\nWHERE RECIPE_NAME = :recipe_name\n  AND EQUIP_CODE = :equip_code\n  AND EFFECTIVE_DATE <= SYSDATE\nORDER BY EFFECTIVE_DATE DESC\nFETCH FIRST 1 ROWS ONLY",
-  },
-  LOT_GRADE: {
-    variable: "LOT_GRADE", varType: "COMPUTED",
-    sourceTable: "WIP_LOT", sourceColumn: "GRADE",
-    filterConditions: "LOT_ID = :lot_id",
-    sqlHint: "SELECT GRADE\nFROM WIP_LOT\nWHERE LOT_ID = :lot_id",
-  },
-  HOLD_FLAG: {
-    variable: "HOLD_FLAG", varType: "COMPUTED",
-    sourceTable: "WIP_LOT", sourceColumn: "HOLD_FLAG",
-    filterConditions: "LOT_ID = :lot_id",
-    sqlHint: "SELECT HOLD_FLAG\nFROM WIP_LOT\nWHERE LOT_ID = :lot_id",
-  },
-  EQUIP_STATUS: {
-    variable: "EQUIP_STATUS", varType: "COMPUTED",
-    sourceTable: "EQP_STATUS", sourceColumn: "STATUS",
-    filterConditions: "EQUIP_CODE = :equip_code\nAND RECORD_TIME = (\n  SELECT MAX(RECORD_TIME) FROM EQP_STATUS\n  WHERE EQUIP_CODE = :equip_code\n)",
-    sqlHint: "SELECT STATUS\nFROM EQP_STATUS\nWHERE EQUIP_CODE = :equip_code\n  AND RECORD_TIME = (\n    SELECT MAX(RECORD_TIME) FROM EQP_STATUS\n    WHERE EQUIP_CODE = :equip_code\n  )",
-  },
-  WAIT_HR: {
-    variable: "WAIT_HR", varType: "COMPUTED",
-    sourceTable: "WIP_QUEUE", sourceColumn: "WAIT_HOURS",
-    filterConditions: "LOT_ID = :lot_id AND STAGE = :stage",
-    sqlHint: "SELECT WAIT_HOURS\nFROM WIP_QUEUE\nWHERE LOT_ID = :lot_id\n  AND STAGE = :stage",
-  },
-  MAX_WAIT_HR: {
-    variable: "MAX_WAIT_HR", varType: "COMPUTED",
-    sourceTable: "STAGE_CONFIG", sourceColumn: "MAX_WAIT_HOURS",
-    filterConditions: "STAGE = :stage AND LOT_GRADE = :lot_grade",
-    sqlHint: "SELECT MAX_WAIT_HOURS\nFROM STAGE_CONFIG\nWHERE STAGE = :stage\n  AND LOT_GRADE = :lot_grade",
-  },
-  QUEUE_DEPTH: {
-    variable: "QUEUE_DEPTH", varType: "COMPUTED",
-    sourceTable: "EQP_QUEUE", sourceColumn: "QUEUE_COUNT",
-    filterConditions: "EQUIP_CODE = :equip_code",
-    sqlHint: "SELECT QUEUE_COUNT\nFROM EQP_QUEUE\nWHERE EQUIP_CODE = :equip_code",
-  },
-  MAX_QUEUE: {
-    variable: "MAX_QUEUE", varType: "COMPUTED",
-    sourceTable: "EQP_CONFIG", sourceColumn: "MAX_QUEUE_SIZE",
-    filterConditions: "EQUIP_CODE = :equip_code",
-    sqlHint: "SELECT MAX_QUEUE_SIZE\nFROM EQP_CONFIG\nWHERE EQUIP_CODE = :equip_code",
-  },
-  APPLY_STATUS: {
-    variable: "APPLY_STATUS", varType: "COMPUTED",
-    sourceTable: "RECIPE_APPLY_LOG", sourceColumn: "STATUS",
-    filterConditions: "RECIPE_NAME = :recipe_name AND EQUIP_CODE = :equip_code",
-    sqlHint: "SELECT STATUS\nFROM RECIPE_APPLY_LOG\nWHERE RECIPE_NAME = :recipe_name\n  AND EQUIP_CODE = :equip_code\nORDER BY APPLY_TIME DESC\nFETCH FIRST 1 ROWS ONLY",
-  },
-};
 
 // ─── 拓撲排序 ─────────────────────────────────────────────────
 
@@ -128,6 +49,8 @@ function sortBlocks(rules: RuleData[]): RuleData[] {
 
 // ─── 核心邏輯 ─────────────────────────────────────────────────
 
+// 反藍 Log 名稱萃取輔助函數，支援輸入 [$NAME$] 或直接輸入 NAME
+// 例如：[$ALREADY_ON_HOLD$] 或 ALREADY_ON_HOLD 都會被解析為 ALREADY_ON_HOLD
 function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -139,9 +62,10 @@ function parseLogName(input: string): string {
   return m ? m[1] : trimmed.toUpperCase();
 }
 
-/** 找出 VALUE 含有 [$logName$] 的所有 Block */
+/** 找出 VALUE 含有 $logName$ 或 [$logName$] 的所有 Block */
 function findLogBlocks(logName: string, rules: RuleData[]): RuleData[] {
-  const re = new RegExp(`\\[\\$${escapeRegex(logName)}\\$\\]`);
+  // 使用正則表達式同時匹配 $LOG_NAME$ 和 [$LOG_NAME$] 兩種格式
+  const re = new RegExp(`\\[?\\$${escapeRegex(logName)}\\$\\]?`);
   return rules.filter((r) => r.VALUES.some((v) => v.VALUE && re.test(v.VALUE)));
 }
 
@@ -152,16 +76,19 @@ const LOG_KEYWORDS = new Set([
 
 /** 從含有指定 Log 的 VALUE 表達式中萃取相關變數名稱 */
 function extractVarsFromLogExpr(logName: string, blocks: RuleData[]): string[] {
-  const re = new RegExp(`\\[\\$${escapeRegex(logName)}\\$\\]`);
+  // re: 同時匹配 $LOG_NAME$ 和 [$LOG_NAME$] 兩種格式，並使用 escapeRegex 處理 logName 中可能的特殊字符
+  const re = new RegExp(`\\[?\\$${escapeRegex(logName)}\\$\\]?`);
+  // vars: 使用 Set 去除重複，最後轉為陣列返回
   const vars = new Set<string>();
 
   for (const block of blocks) {
     for (const v of block.VALUES) {
+      // 只處理 VALUE 欄位，且必須包含指定 Log 的格式
       if (!v.VALUE || !re.test(v.VALUE)) continue;
 
-      // 移除 [$...$]、字串字面值、函式名稱（小駝峰或大駝峰後接括號）
+      // 移除 $...$、[$...$]、字串字面值、函式名稱（簡化處理，假設函式名稱後面緊跟括號），留下可能的變數名稱
       const cleaned = v.VALUE
-        .replace(/"?\[\$[^\$]+\$\]"?/g, " ")
+        .replace(/"?\[?\$[^\$\[\]]+\$\]?"?/g, " ")
         .replace(/"[^"]*"/g, " ")
         .replace(/[A-Za-z_][A-Za-z0-9_]*\s*\(/g, "(");
 
@@ -181,10 +108,9 @@ function findVarDefBlocks(varName: string, rules: RuleData[]): RuleData[] {
 }
 
 // ─── Block Type 樣式 ──────────────────────────────────────────
-
 const BLOCK_TYPE_STYLE: Record<string, { badge: string; border: string }> = {
   START:    { badge: "bg-purple-500/20 text-purple-300 border border-purple-500/30", border: "border-purple-500/30" },
-  END:      { badge: "bg-[#8b9ab8]/20  text-[#8b9ab8] border border-[#8b9ab8]/20",  border: "border-[#8b9ab8]/20" },
+  END:      { badge: "bg-slate-400/20  text-slate-400 border border-slate-400/20",  border: "border-slate-400/20" },
   DECISION: { badge: "bg-amber-500/20  text-amber-300  border border-amber-500/30", border: "border-amber-500/30" },
   PROCESS:  { badge: "bg-blue-500/20   text-blue-300   border border-blue-500/30",  border: "border-blue-500/30" },
 };
@@ -219,6 +145,8 @@ function ExprRenderer({
   activeLogName?: string;   // 若設定，此 Log 標籤會高亮
   activeVar?: string;        // 若設定，此變數名稱會高亮
 }) {
+
+  // 只針對Value高亮
   const KW: Record<string, string> = {
     IF:   "text-purple-400 font-bold",
     THEN: "text-green-400 font-bold",
@@ -228,7 +156,7 @@ function ExprRenderer({
     NOT:  "text-red-400 font-bold",
   };
 
-  const LOG_PATTERN = /"?\[\$([^\$]+)\$\]"?/g;
+  const LOG_PATTERN = /"?\[?\$([^\$\[\]]+)\$\]?"?/g;
   type Part = { kind: "text"; value: string } | { kind: "log"; name: string };
 
   const parts: Part[] = [];
@@ -263,9 +191,9 @@ function ExprRenderer({
             if (KW[token]) {
               segments.push({ text: token, cls: KW[token] });
             } else if (activeVar && token === activeVar) {
-              segments.push({ text: token, cls: "text-[#fcd34d] underline decoration-dotted underline-offset-2 font-bold" });
+              segments.push({ text: token, cls: "text-yellow-300 underline decoration-dotted underline-offset-2 font-bold" });
             } else {
-              segments.push({ text: token, cls: "text-[#cfd6e6]" });
+              segments.push({ text: token, cls: "text-slate-300" });
             }
           }
         });
@@ -301,9 +229,10 @@ function BlockCard({
   selectedDbVar: string | null;
   onCol1Click: (v: string) => void;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   const style = getBlockStyle(block.BLOCK_TYPE);
   const logRe = activeLogName
-    ? new RegExp(`\\[\\$${escapeRegex(activeLogName)}\\$\\]`)
+    ? new RegExp(`\\[?\\$${escapeRegex(activeLogName)}\\$\\]?`)
     : null;
 
   function isRowRelevant(v: (typeof block.VALUES)[0]): boolean {
@@ -315,21 +244,27 @@ function BlockCard({
   return (
     <div className={`rounded-lg border overflow-hidden ${style.border}`}>
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-white/[.03] border-b border-white/[.06]">
-        <span className="text-[#4b5a72] font-mono text-xs w-5 flex-shrink-0">{seqNum}</span>
-        <span className={`text-xs px-2 py-0.5 rounded font-bold font-mono flex-shrink-0 ${style.badge}`}>
+      <button
+        onClick={() => setCollapsed((c) => !c)}
+        className="w-full flex items-center gap-2 px-3 py-2 bg-white/3 border-b border-white/6 cursor-pointer hover:bg-white/6 transition-colors text-left"
+      >
+        <span className="text-slate-600 font-mono text-xs w-5 shrink-0">{seqNum}</span>
+        <span className={`text-xs px-2 py-0.5 rounded font-bold font-mono shrink-0 ${style.badge}`}>
           {block.BLOCK_TYPE}
         </span>
-        <span className="text-[#cfd6e6] text-xs font-mono font-semibold flex-1 truncate">
+        <span className="text-slate-300 text-xs font-mono font-semibold flex-1 truncate">
           {block.BLOCK_NAME}
         </span>
         {block.KEY && (
-          <span className="text-[#4b5a72] text-xs font-mono flex-shrink-0">KEY: {block.KEY}</span>
+          <span className="text-slate-600 text-xs font-mono shrink-0">KEY: {block.KEY}</span>
         )}
-      </div>
+        <span className="text-slate-600 text-xs shrink-0 ml-1 leading-none">
+          {collapsed ? "▶" : "▼"}
+        </span>
+      </button>
 
-      {block.VALUES.length > 0 && (
-        <div className="flex flex-col divide-y divide-white/[.04]">
+      {!collapsed && block.VALUES.length > 0 && (
+        <div className="flex flex-col divide-y divide-white/4">
           {block.VALUES.map((v, i) => {
             const relevant = isRowRelevant(v);
             return (
@@ -341,18 +276,18 @@ function BlockCard({
                   {/* COLUMN1 */}
                   {v.COLUMN1 && (
                     <button
-                      onClick={() => onCol1Click(v.COLUMN1!)}
-                      className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded border flex-shrink-0 transition-colors cursor-pointer ${
+                      onClick={(e) => { e.stopPropagation(); onCol1Click(v.COLUMN1!); }}
+                      className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded border shrink-0 transition-colors cursor-pointer ${
                         selectedDbVar === v.COLUMN1
-                          ? "text-[#7dd3fc] border-blue-400/50 bg-blue-500/15"
-                          : "text-[#7dd3fc] border-[#7dd3fc]/20 bg-[#7dd3fc]/[.05] hover:bg-[#7dd3fc]/10"
+                          ? "text-sky-300 border-blue-400/50 bg-blue-500/15"
+                          : "text-sky-300 border-sky-300/20 bg-sky-300/5 hover:bg-sky-300/10"
                       }`}
                       title={`查看 ${v.COLUMN1} 來源`}
                     >
                       {v.COLUMN1}
                     </button>
                   )}
-                  <span className="text-white/20 text-xs self-center flex-shrink-0">←</span>
+                  <span className="text-white/20 text-xs self-center shrink-0">←</span>
                   <pre className="flex-1 min-w-0 font-mono text-xs whitespace-pre-wrap leading-relaxed">
                     <ExprRenderer
                       text={v.VALUE ?? ""}
@@ -362,8 +297,8 @@ function BlockCard({
                   </pre>
                 </div>
                 {v.COLUMN2 && (
-                  <div className="ml-1 text-[#4b5a72] text-xs font-mono">
-                    ref: <span className="text-[#8b9ab8]">{v.COLUMN2}</span>
+                  <div className="ml-1 text-slate-600 text-xs font-mono">
+                    ref: <span className="text-slate-400">{v.COLUMN2}</span>
                   </div>
                 )}
               </div>
@@ -380,9 +315,9 @@ function BlockCard({
 function VarSourcePanel({ source, varName }: { source: VariableSource | null; varName: string | null }) {
   if (!varName) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-[#8b9ab8] text-sm text-center px-4">
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-slate-400 text-sm text-center px-4">
         <span className="text-2xl opacity-25">⌕</span>
-        點擊<span className="text-[#7dd3fc] mx-1">藍色</span>輸出變數
+        點擊<span className="text-sky-300 mx-1">藍色</span>輸出變數
         <br />
         查看 DB 資料來源
       </div>
@@ -393,54 +328,54 @@ function VarSourcePanel({ source, varName }: { source: VariableSource | null; va
     !source ? "bg-white/10 text-white/40 border-white/10" :
     source.varType === "INPUT"    ? "bg-green-500/15  text-green-400 border-green-500/30" :
     source.varType === "COMPUTED" ? "bg-blue-500/15   text-blue-400  border-blue-500/30"  :
-                                    "bg-[#8b9ab8]/15  text-[#8b9ab8] border-[#8b9ab8]/30";
+                                    "bg-slate-400/15  text-slate-400 border-slate-400/30";
 
   return (
     <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-2.5">
-      <div className="rounded-lg bg-white/[.04] border border-white/10 p-3">
-        <div className="text-[#8b9ab8] text-xs uppercase tracking-wide mb-1.5">變數</div>
+      <div className="rounded-lg bg-white/4 border border-white/10 p-3">
+        <div className="text-slate-400 text-xs uppercase tracking-wide mb-1.5">變數</div>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[#7dd3fc] font-mono text-sm font-bold">{varName}</span>
+          <span className="text-sky-300 font-mono text-sm font-bold">{varName}</span>
           <span className={`text-xs px-2 py-0.5 rounded border font-bold ${typeStyle}`}>
             {source?.varType ?? "UNKNOWN"}
           </span>
         </div>
       </div>
 
-      {!source && <div className="text-[#8b9ab8] text-xs text-center mt-2">尚無資料來源資訊</div>}
+      {!source && <div className="text-slate-400 text-xs text-center mt-2">尚無資料來源資訊</div>}
 
       {source?.varType === "INPUT" && source.description && (
-        <div className="rounded-lg bg-white/[.04] border border-white/10 p-3">
-          <div className="text-[#8b9ab8] text-xs uppercase tracking-wide mb-2">說明</div>
-          <p className="text-[#cfd6e6] text-xs leading-relaxed">{source.description}</p>
+        <div className="rounded-lg bg-white/4 border border-white/10 p-3">
+          <div className="text-slate-400 text-xs uppercase tracking-wide mb-2">說明</div>
+          <p className="text-slate-300 text-xs leading-relaxed">{source.description}</p>
         </div>
       )}
 
       {source?.varType === "COMPUTED" && (
         <>
-          <div className="rounded-lg bg-white/[.04] border border-white/10 p-3">
-            <div className="text-[#8b9ab8] text-xs uppercase tracking-wide mb-2">資料來源</div>
+          <div className="rounded-lg bg-white/4 border border-white/10 p-3">
+            <div className="text-slate-400 text-xs uppercase tracking-wide mb-2">資料來源</div>
             <div className="flex flex-col gap-2">
               <div className="flex items-start gap-2">
-                <span className="text-[#8b9ab8] text-xs w-14 flex-shrink-0 pt-px">TABLE</span>
-                <span className="text-[#fcd34d] font-mono text-xs font-bold break-all">{source.sourceTable}</span>
+                <span className="text-slate-400 text-xs w-14 shrink-0 pt-px">TABLE</span>
+                <span className="text-yellow-300 font-mono text-xs font-bold break-all">{source.sourceTable}</span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-[#8b9ab8] text-xs w-14 flex-shrink-0 pt-px">COLUMN</span>
-                <span className="text-[#86efac] font-mono text-xs font-bold break-all">{source.sourceColumn}</span>
+                <span className="text-slate-400 text-xs w-14 shrink-0 pt-px">COLUMN</span>
+                <span className="text-green-300 font-mono text-xs font-bold break-all">{source.sourceColumn}</span>
               </div>
             </div>
           </div>
           {source.filterConditions && (
-            <div className="rounded-lg bg-white/[.04] border border-white/10 p-3">
-              <div className="text-[#8b9ab8] text-xs uppercase tracking-wide mb-2">篩選條件</div>
-              <pre className="text-[#cfd6e6] font-mono text-xs whitespace-pre-wrap leading-relaxed">{source.filterConditions}</pre>
+            <div className="rounded-lg bg-white/4 border border-white/10 p-3">
+              <div className="text-slate-400 text-xs uppercase tracking-wide mb-2">篩選條件</div>
+              <pre className="text-slate-300 font-mono text-xs whitespace-pre-wrap leading-relaxed">{source.filterConditions}</pre>
             </div>
           )}
           {source.sqlHint && (
-            <div className="rounded-lg bg-black/50 border border-white/[.08] p-3">
-              <div className="text-[#8b9ab8] text-xs uppercase tracking-wide mb-2">SQL 參考</div>
-              <pre className="text-[#a5f3fc] font-mono whitespace-pre-wrap leading-relaxed" style={{ fontSize: 11 }}>
+            <div className="rounded-lg bg-black/50 border border-white/8 p-3">
+              <div className="text-slate-400 text-xs uppercase tracking-wide mb-2">SQL 參考</div>
+              <pre className="text-cyan-300 font-mono whitespace-pre-wrap leading-relaxed text-[11px]">
                 {source.sqlHint}
               </pre>
             </div>
@@ -466,14 +401,15 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
   const [mode, setMode]                       = useState<TrackerMode>({ tag: "idle" });
   const [selectedDbVar, setSelectedDbVar]     = useState<string | null>(null);
   const [dbSource, setDbSource]               = useState<VariableSource | null>(null);
+  const [varsCollapsed, setVarsCollapsed]     = useState(false);
   const searchWrapRef                         = useRef<HTMLDivElement>(null);
   const logListRef                            = useRef<HTMLUListElement>(null);
 
   const sortedRules = useMemo(() => sortBlocks(rules), [rules]);
 
-  // 從所有 VALUES 中萃取 [$...$] Log 名稱清單
+  // 從所有 VALUES 中萃取 $...$ 或 [$...$] Log 名稱清單
   const allLogNames = useMemo(() => {
-    const LOG_RE = /\[\$([^\$]+)\$\]/g;
+    const LOG_RE = /\[?\$([A-Z][A-Z0-9_]+)\$\]?/g;
     const names  = new Set<string>();
     for (const r of rules) {
       for (const v of r.VALUES) {
@@ -488,7 +424,7 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
 
   // 依輸入過濾（去除 [$...$] 包裝後比對）
   const filteredLogs = useMemo(() => {
-    const kw = searchInput.replace(/^\[\$|\$\]$/g, "").trim().toLowerCase();
+    const kw = searchInput.replace(/^\[?\$|\$\]?$/g, "").trim().toLowerCase();
     if (!kw) return allLogNames;
     return allLogNames.filter((n) => n.toLowerCase().includes(kw));
   }, [allLogNames, searchInput]);
@@ -561,7 +497,7 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
 
   if (!selectedRule || rules.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-[#8b9ab8] text-xs text-center">
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-slate-400 text-xs text-center">
         <span className="text-2xl opacity-20">⚙</span>
         請先選擇 Rule
       </div>
@@ -596,7 +532,7 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
   }
 
   const searchBar = (
-    <div ref={searchWrapRef} className="flex items-center gap-1.5 flex-shrink-0 relative">
+    <div ref={searchWrapRef} className="flex items-center gap-1.5 shrink-0 relative">
       <div className="flex-1 min-w-0 relative">
         <input
           className="w-full rounded px-2 py-1 bg-white/10 text-white border border-white/20
@@ -611,8 +547,8 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
         {dropOpen && filteredLogs.length > 0 && (
           <ul
             ref={logListRef}
-            className="absolute top-full left-0 mt-1 w-full max-h-[200px] overflow-y-auto
-              rounded border border-white/20 bg-[#1a2540] shadow-xl z-[2000] list-none p-0 m-0"
+            className="absolute top-full left-0 mt-1 w-full max-h-50 overflow-y-auto
+              rounded border border-white/20 bg-slate-900 shadow-xl z-2000 list-none p-0 m-0"
           >
             {filteredLogs.map((name, i) => (
               <li
@@ -621,7 +557,7 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
                 className={`px-2.5 py-1.5 text-xs font-mono cursor-pointer flex items-center gap-1 ${
                   i === logHighlightIdx
                     ? "bg-white/15 text-white"
-                    : "text-[#cfd6e6] hover:bg-white/10 hover:text-white"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -642,7 +578,7 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
 
       <button
         onClick={() => { setDropOpen(false); handleSearch(); }}
-        className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex-shrink-0 cursor-pointer transition-colors"
+        className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shrink-0 cursor-pointer transition-colors"
       >
         Trace
       </button>
@@ -653,7 +589,7 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
     return (
       <div className="flex-1 min-h-0 flex flex-col gap-2">
         {searchBar}
-        <div className="flex-1 flex flex-col items-center justify-center gap-1.5 text-[#8b9ab8] text-xs text-center">
+        <div className="flex-1 flex flex-col items-center justify-center gap-1.5 text-slate-400 text-xs text-center">
           <span className="text-xl opacity-20">[$]</span>
           輸入反藍 Log 名稱
           <br />
@@ -674,15 +610,15 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
       {searchBar}
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1 flex-shrink-0 flex-wrap">
+      <div className="flex items-center gap-1 shrink-0 flex-wrap">
         <button
           onClick={handleBack}
-          className="text-xs text-[#8b9ab8] hover:text-white cursor-pointer transition-colors"
+          className="text-xs text-slate-400 hover:text-white cursor-pointer transition-colors"
           title="返回"
         >
           ←
         </button>
-        <span className="text-[#4b5a72] text-xs">/</span>
+        <span className="text-slate-600 text-xs">/</span>
         <button
           onClick={isLogMode ? undefined : handleBack}
           className={`inline-flex items-center gap-0.5 px-1 py-px rounded text-xs font-bold font-mono border transition-colors ${
@@ -695,11 +631,11 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
         </button>
         {varName && (
           <>
-            <span className="text-[#4b5a72] text-xs">/</span>
-            <span className="text-[#fcd34d] font-mono text-xs font-semibold">{varName}</span>
+            <span className="text-slate-600 text-xs">/</span>
+            <span className="text-yellow-300 font-mono text-xs font-semibold">{varName}</span>
           </>
         )}
-        <span className="ml-auto text-[#4b5a72] text-xs">
+        <span className="ml-auto text-slate-600 text-xs">
           {blocks.length > 0 ? `${blocks.length} Block` : "找不到"}
         </span>
       </div>
@@ -707,7 +643,7 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
       {/* 主體：可捲動 */}
       <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-2">
         {blocks.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-[#8b9ab8] text-xs">
+          <div className="flex-1 flex items-center justify-center text-slate-400 text-xs">
             在當前 Rule 中找不到相關定義
           </div>
         ) : (
@@ -727,29 +663,37 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
 
             {/* 相關變數 Pill（Log 模式） */}
             {isLogMode && mode.relatedVars.length > 0 && (
-              <div className="rounded-lg border border-white/10 bg-white/[.02] px-2.5 py-2">
-                <div className="text-[#8b9ab8] text-xs mb-1.5">相關變數 — 點擊查看定義</div>
-                <div className="flex flex-wrap gap-1">
-                  {mode.relatedVars.map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => handleVarPill(v)}
-                      className="font-mono text-xs px-2 py-0.5 rounded border cursor-pointer transition-colors
-                        text-[#fcd34d] border-[#fcd34d]/30 bg-[#fcd34d]/[.05]
-                        hover:bg-[#fcd34d]/10 hover:border-[#fcd34d]/50"
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
+              <div className="rounded-lg border border-white/10 bg-white/2 overflow-hidden">
+                <button
+                  onClick={() => setVarsCollapsed((c) => !c)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 hover:bg-white/4 transition-colors cursor-pointer text-left"
+                >
+                  <span className="text-slate-400 text-xs flex-1">相關變數 — 點擊查看定義</span>
+                  <span className="text-slate-600 text-xs leading-none">{varsCollapsed ? "▶" : "▼"}</span>
+                </button>
+                {!varsCollapsed && (
+                  <div className="flex flex-wrap gap-1 px-2.5 pb-2">
+                    {mode.relatedVars.map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => handleVarPill(v)}
+                        className="font-mono text-xs px-2 py-0.5 rounded border cursor-pointer transition-colors
+                          text-yellow-300 border-yellow-300/30 bg-yellow-300/5
+                          hover:bg-yellow-300/10 hover:border-yellow-300/50"
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {/* DB 資料來源（inline，點藍色變數後展開） */}
             {selectedDbVar && (
-              <div className="rounded-lg border border-[#7dd3fc]/20 bg-[#7dd3fc]/[.03] p-2.5">
+              <div className="rounded-lg border border-sky-300/20 bg-sky-300/3 p-2.5">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[#7dd3fc] font-mono text-xs font-bold">{selectedDbVar}</span>
+                  <span className="text-sky-300 font-mono text-xs font-bold">{selectedDbVar}</span>
                   <button
                     onClick={() => { setSelectedDbVar(null); setDbSource(null); }}
                     className="text-white/30 hover:text-white/70 text-xs cursor-pointer"

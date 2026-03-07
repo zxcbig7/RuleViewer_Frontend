@@ -31,20 +31,19 @@ type BlockInspectorProps = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Type Accent Config
+// Type Accent Config  (Tailwind class strings)
 // ─────────────────────────────────────────────────────────────
 type TypeAccent = {
-  headerBg: string;
-  borderColor: string;
-  badgeBg: string;
-  badgeText: string;
+  headerBg: string;     // Tailwind bg class
+  borderLeft: string;   // Tailwind border-l-color class
+  badgeClasses: string; // Tailwind badge classes
 };
 
 const TYPE_ACCENT: Record<string, TypeAccent> = {
-  START:    { headerBg: "#f0fdf4", borderColor: "#16a34a", badgeBg: "#dcfce7", badgeText: "#15803d" },
-  END:      { headerBg: "#f9fafb", borderColor: "#6b7280", badgeBg: "#f3f4f6", badgeText: "#374151" },
-  DECISION: { headerBg: "#fffbeb", borderColor: "#d97706", badgeBg: "#fef3c7", badgeText: "#92400e" },
-  PROCESS:  { headerBg: "#eff6ff", borderColor: "#2563eb", badgeBg: "#dbeafe", badgeText: "#1e40af" },
+  START:    { headerBg: "bg-green-50",  borderLeft: "border-l-green-600",  badgeClasses: "bg-green-100 text-green-700" },
+  END:      { headerBg: "bg-gray-50",   borderLeft: "border-l-gray-500",   badgeClasses: "bg-gray-100 text-gray-700" },
+  DECISION: { headerBg: "bg-amber-50",  borderLeft: "border-l-amber-600",  badgeClasses: "bg-amber-100 text-amber-800" },
+  PROCESS:  { headerBg: "bg-blue-50",   borderLeft: "border-l-blue-600",   badgeClasses: "bg-blue-100 text-blue-800" },
 };
 
 function getAccent(type: string): TypeAccent {
@@ -152,14 +151,13 @@ export function BlockInspector({
   return (
     <div
       ref={panelRef}
-      className="absolute top-0 left-0 w-[360px] min-w-[300px] min-h-[200px] flex flex-col bg-white shadow-[0_12px_30px_rgba(0,0,0,0.18)] pointer-events-auto overflow-hidden"
-      style={{ zIndex, borderLeft: `3px solid ${accent.borderColor}`, border: `1px solid #e5e7eb`, borderLeftWidth: 3, borderLeftColor: accent.borderColor }}
+      className={`absolute top-0 left-0 w-90 min-w-75 min-h-50 flex flex-col bg-white shadow-[0_12px_30px_rgba(0,0,0,0.18)] pointer-events-auto overflow-hidden border border-gray-200 border-l-4 ${accent.borderLeft}`}
+      style={{ zIndex }}
       onMouseDown={(e) => { e.stopPropagation(); onFocus?.(); }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between select-none px-3 py-2 flex-shrink-0 cursor-move border-b border-[#e5e7eb]"
-        style={{ backgroundColor: accent.headerBg }}
+        className={`flex items-center justify-between select-none px-3 py-2 shrink-0 cursor-move border-b border-gray-200 ${accent.headerBg}`}
         onMouseDown={(e) => {
           e.stopPropagation();
           onFocus?.();
@@ -173,19 +171,16 @@ export function BlockInspector({
         }}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0"
-            style={{ backgroundColor: accent.badgeBg, color: accent.badgeText }}
-          >
+          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 ${accent.badgeClasses}`}>
             {block.type}
           </span>
           <strong className="text-sm truncate">{r.BLOCK_NAME}</strong>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-[10px] text-[#d1d5db] select-none">Esc</span>
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="text-[10px] text-gray-300 select-none">Esc</span>
           <button
             onClick={onClose}
-            className="bg-transparent border-0 text-sm cursor-pointer px-1.5 py-0.5 leading-none text-[#9ca3af] hover:text-red-500"
+            className="bg-transparent border-0 text-sm cursor-pointer px-1.5 py-0.5 leading-none text-gray-400 hover:text-red-500"
           >
             ✕
           </button>
@@ -213,7 +208,7 @@ export function BlockInspector({
           resizeRef.current.startH = panel.offsetHeight;
         }}
       >
-        <span className="text-[10px] text-[#d1d5db] leading-none select-none">◢</span>
+        <span className="text-[10px] text-gray-300 leading-none select-none">◢</span>
       </div>
     </div>
   );
@@ -342,7 +337,7 @@ function ProcessBody({ r }: { r: RuleData }) {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[10px] font-bold tracking-wider text-[#9ca3af] uppercase mt-1">
+    <div className="text-[10px] font-bold tracking-wider text-gray-400 uppercase mt-1">
       {children}
     </div>
   );
@@ -352,22 +347,19 @@ function MetaRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] text-[#9ca3af] font-medium">{label}</span>
-      <span className="text-xs text-[#111827] break-all font-mono">{value}</span>
+      <span className="text-[10px] text-gray-400 font-medium">{label}</span>
+      <span className="text-xs text-gray-900 break-all font-mono">{value}</span>
     </div>
   );
 }
 
 function PreBlockBadge({ name, isPrimary }: { name: string; isPrimary: boolean }) {
   return (
-    <span
-      className="text-[11px] px-2 py-0.5 rounded border font-mono"
-      style={
-        isPrimary
-          ? { borderColor: "#374151", color: "#374151", backgroundColor: "#f9fafb" }
-          : { borderColor: "#ea580c", color: "#ea580c", backgroundColor: "#fff7ed" }
-      }
-    >
+    <span className={`text-[11px] px-2 py-0.5 rounded border font-mono ${
+      isPrimary
+        ? "border-gray-700 text-gray-700 bg-gray-50"
+        : "border-orange-600 text-orange-600 bg-orange-50"
+    }`}>
       {isPrimary ? "●" : "○"} {name}
     </span>
   );
@@ -376,22 +368,22 @@ function PreBlockBadge({ name, isPrimary }: { name: string; isPrimary: boolean }
 /** DECISION 用：顯示判斷條件 */
 function DecisionConditionCard({ v }: { v: BlockValue }) {
   return (
-    <div className="rounded border border-[#fde68a] bg-[#fffdf0] p-2.5">
+    <div className="rounded border border-amber-200 bg-amber-50 p-2.5">
       <div className="flex gap-3 text-xs mb-2">
         {v.COLUMN1 && (
           <span className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-[#9ca3af]">Output</span>
-            <span className="font-mono text-[#92400e] font-semibold">{v.COLUMN1}</span>
+            <span className="text-[10px] text-gray-400">Output</span>
+            <span className="font-mono text-amber-800 font-semibold">{v.COLUMN1}</span>
           </span>
         )}
         {v.COLUMN2 && (
           <span className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-[#9ca3af]">Input</span>
-            <span className="font-mono text-[#374151]">{v.COLUMN2}</span>
+            <span className="text-[10px] text-gray-400">Input</span>
+            <span className="font-mono text-gray-700">{v.COLUMN2}</span>
           </span>
         )}
       </div>
-      <pre className="font-mono text-xs leading-relaxed bg-white border border-[#fde68a] rounded px-2.5 py-2 m-0 whitespace-pre-wrap break-all">
+      <pre className="font-mono text-xs leading-relaxed bg-white border border-amber-200 rounded px-2.5 py-2 m-0 whitespace-pre-wrap break-all">
         {v.VALUE != null && <HighlightedValue code={v.VALUE} />}
       </pre>
     </div>
@@ -401,30 +393,30 @@ function DecisionConditionCard({ v }: { v: BlockValue }) {
 /** PROCESS 用：顯示單一賦值 */
 function AssignmentCard({ index, v }: { index: number; v: BlockValue }) {
   return (
-    <div className="rounded border border-[#e5e7eb] bg-[#fafafa] p-2.5">
+    <div className="rounded border border-gray-200 bg-gray-50 p-2.5">
       {/* 賦值目標 */}
       <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-[10px] text-[#9ca3af] font-medium w-4 text-right flex-shrink-0">
+        <span className="text-[10px] text-gray-400 font-medium w-4 text-right shrink-0">
           {index + 1}
         </span>
-        <span className="text-[10px] text-[#9ca3af]">←</span>
+        <span className="text-[10px] text-gray-400">←</span>
         <div className="flex gap-3 text-xs min-w-0">
           {v.COLUMN1 && (
             <span className="flex flex-col gap-0.5">
-              <span className="text-[9px] text-[#9ca3af]">Target</span>
-              <span className="font-mono text-[#1d4ed8] font-semibold">{v.COLUMN1}</span>
+              <span className="text-[9px] text-gray-400">Target</span>
+              <span className="font-mono text-blue-700 font-semibold">{v.COLUMN1}</span>
             </span>
           )}
           {v.COLUMN2 && (
             <span className="flex flex-col gap-0.5">
-              <span className="text-[9px] text-[#9ca3af]">Depends on</span>
-              <span className="font-mono text-[#6b7280]">{v.COLUMN2}</span>
+              <span className="text-[9px] text-gray-400">Depends on</span>
+              <span className="font-mono text-gray-500">{v.COLUMN2}</span>
             </span>
           )}
         </div>
       </div>
       {/* 值表達式 */}
-      <pre className="font-mono text-xs leading-relaxed bg-white border border-[#e5e7eb] rounded px-2.5 py-1.5 m-0 whitespace-pre-wrap break-all ml-6">
+      <pre className="font-mono text-xs leading-relaxed bg-white border border-gray-200 rounded px-2.5 py-1.5 m-0 whitespace-pre-wrap break-all ml-6">
         {v.VALUE != null && <HighlightedValue code={v.VALUE} />}
       </pre>
     </div>
@@ -461,19 +453,19 @@ function tokenize(code: string): Token[] {
   return result;
 }
 
-const TOKEN_COLOR: Record<TokenType, string | undefined> = {
-  comment:  "#16a34a",
-  string:   "#92400e",
-  keyword:  "#1d4ed8",
-  variable: "#b45309",
-  text:     undefined,
+const TOKEN_CLASS: Record<TokenType, string> = {
+  comment:  "text-green-600",
+  string:   "text-amber-800",
+  keyword:  "text-blue-700",
+  variable: "text-amber-700",
+  text:     "",
 };
 
 function HighlightedValue({ code }: { code: string }) {
   return (
     <>
       {tokenize(code).map((tok, i) => (
-        <span key={i} style={tok.type !== "text" ? { color: TOKEN_COLOR[tok.type] } : undefined}>
+        <span key={i} className={TOKEN_CLASS[tok.type]}>
           {tok.text}
         </span>
       ))}
