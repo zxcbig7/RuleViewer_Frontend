@@ -51,8 +51,10 @@ function getAccent(type: string): TypeAccent {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Shell
+// Shell: 拖曳、縮放、定位，與內容無關
+// 負責面板的拖曳、縮放、定位，與內容無關
 // ─────────────────────────────────────────────────────────────
+
 export function BlockInspector({
   block,
   initialX,
@@ -69,12 +71,14 @@ export function BlockInspector({
 
   const panelRef = useRef<HTMLDivElement | null>(null);
 
+  // 拖曳狀態與初始位置記錄
   const dragRef = useRef({
     dragging: false,
     startX: 0, startY: 0,
     originX: initialX, originY: initialY,
   });
 
+  // 縮放狀態記錄
   const resizeRef = useRef({
     resizing: false,
     startX: 0, startY: 0,
@@ -96,6 +100,7 @@ export function BlockInspector({
       const wrapper = wrapperRef.current;
       if (!panel || !wrapper) return;
 
+      // 先處理 resize（優先於拖曳），並且限制在 wrapper 範圍內
       if (resizeRef.current.resizing) {
         const dx = e.clientX - resizeRef.current.startX;
         const dy = e.clientY - resizeRef.current.startY;
@@ -108,6 +113,7 @@ export function BlockInspector({
         return;
       }
 
+      // 只有在拖曳狀態才處理 mousemove，並且限制在 wrapper 範圍內
       if (!dragRef.current.dragging) return;
       const rect = wrapper.getBoundingClientRect();
       const mx   = e.clientX - rect.left;
@@ -121,6 +127,7 @@ export function BlockInspector({
       onPositionChangeRef.current?.(x, y);
     }
 
+    // mouseup 停止拖曳/resize，並更新 origin 以利下一次拖曳
     function onMouseUp() {
       const panel   = panelRef.current;
       const wrapper = wrapperRef.current;
@@ -135,6 +142,7 @@ export function BlockInspector({
       }
     }
 
+    // 全局監聽 mousemove 和 mouseup，以支援在面板外拖曳/縮放
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup",   onMouseUp);
     return () => {
@@ -215,123 +223,6 @@ export function BlockInspector({
 }
 
 // ─────────────────────────────────────────────────────────────
-// Body Factory
-// ─────────────────────────────────────────────────────────────
-function InspectorBody({ block, r }: { block: Block; r: RuleData }) {
-  switch (block.type) {
-    case "START":
-    case "END":
-      return <StartEndBody r={r} />;
-    case "DECISION":
-      return <DecisionBody r={r} />;
-    default:
-      return <ProcessBody r={r} />;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// StartEndBody — 僅元資料，無 Values
-// ─────────────────────────────────────────────────────────────
-function StartEndBody({ r }: { r: RuleData }) {
-  return (
-    <div className="p-3 flex flex-col gap-2">
-      <SectionTitle>Metadata</SectionTitle>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-        <MetaRow label="Phase"  value={r.PHASE} />
-        <MetaRow label="Rule"   value={r.RULE_NAME} />
-        <MetaRow label="Group"  value={r.BLOCK_GROUP} />
-        <MetaRow label="Seq"    value={r.BLOCK_SEQ} />
-      </div>
-
-      {r.PRE_BLOCK && r.PRE_BLOCK.length > 0 && (
-        <>
-          <SectionTitle>Pre-Blocks</SectionTitle>
-          <div className="flex flex-wrap gap-1.5">
-            {r.PRE_BLOCK.map((name, i) => (
-              <PreBlockBadge key={name} name={name} isPrimary={i === 0} />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// DecisionBody — Key + 單一判斷條件
-// ─────────────────────────────────────────────────────────────
-function DecisionBody({ r }: { r: RuleData }) {
-  return (
-    <div className="p-3 flex flex-col gap-2">
-      <SectionTitle>Metadata</SectionTitle>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-        <MetaRow label="Group" value={r.BLOCK_GROUP} />
-        <MetaRow label="Seq"   value={r.BLOCK_SEQ} />
-        {r.KEY && <MetaRow label="Decision Key" value={r.KEY} />}
-      </div>
-
-      {r.PRE_BLOCK && r.PRE_BLOCK.length > 0 && (
-        <>
-          <SectionTitle>Pre-Blocks</SectionTitle>
-          <div className="flex flex-wrap gap-1.5">
-            {r.PRE_BLOCK.map((name, i) => (
-              <PreBlockBadge key={name} name={name} isPrimary={i === 0} />
-            ))}
-          </div>
-        </>
-      )}
-
-      {r.VALUES.length > 0 && (
-        <>
-          <SectionTitle>Branch Condition</SectionTitle>
-          {r.VALUES.map((v, i) => (
-            <DecisionConditionCard key={i} v={v} />
-          ))}
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// ProcessBody — 多筆賦值（每筆一件事）
-// ─────────────────────────────────────────────────────────────
-function ProcessBody({ r }: { r: RuleData }) {
-  return (
-    <div className="p-3 flex flex-col gap-2">
-      <SectionTitle>Metadata</SectionTitle>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-        <MetaRow label="Group" value={r.BLOCK_GROUP} />
-        <MetaRow label="Seq"   value={r.BLOCK_SEQ} />
-        {r.KEY && <MetaRow label="Key" value={r.KEY} />}
-      </div>
-
-      {r.PRE_BLOCK && r.PRE_BLOCK.length > 0 && (
-        <>
-          <SectionTitle>Pre-Blocks</SectionTitle>
-          <div className="flex flex-wrap gap-1.5">
-            {r.PRE_BLOCK.map((name, i) => (
-              <PreBlockBadge key={name} name={name} isPrimary={i === 0} />
-            ))}
-          </div>
-        </>
-      )}
-
-      {r.VALUES.length > 0 && (
-        <>
-          <SectionTitle>Assignments ({r.VALUES.length})</SectionTitle>
-          <div className="flex flex-col gap-2">
-            {r.VALUES.map((v, i) => (
-              <AssignmentCard key={i} index={i} v={v} />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
 // Shared Primitives
 // ─────────────────────────────────────────────────────────────
 
@@ -365,30 +256,6 @@ function PreBlockBadge({ name, isPrimary }: { name: string; isPrimary: boolean }
   );
 }
 
-/** DECISION 用：顯示判斷條件 */
-function DecisionConditionCard({ v }: { v: BlockValue }) {
-  return (
-    <div className="rounded border border-amber-200 bg-amber-50 p-2.5">
-      <div className="flex gap-3 text-xs mb-2">
-        {v.COLUMN1 && (
-          <span className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-gray-400">Output</span>
-            <span className="font-mono text-amber-800 font-semibold">{v.COLUMN1}</span>
-          </span>
-        )}
-        {v.COLUMN2 && (
-          <span className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-gray-400">Input</span>
-            <span className="font-mono text-gray-700">{v.COLUMN2}</span>
-          </span>
-        )}
-      </div>
-      <pre className="font-mono text-xs leading-relaxed bg-white border border-amber-200 rounded px-2.5 py-2 m-0 whitespace-pre-wrap break-all">
-        {v.VALUE != null && <HighlightedValue code={v.VALUE} />}
-      </pre>
-    </div>
-  );
-}
 
 /** PROCESS 用：顯示單一賦值 */
 function AssignmentCard({ index, v }: { index: number; v: BlockValue }) {
@@ -472,3 +339,55 @@ function HighlightedValue({ code }: { code: string }) {
     </>
   );
 }
+
+
+// #region Body Design (每一個都是獨立的 React Component)
+
+// ─────────────────────────────────────────────────────────────
+// Body Factory
+// ─────────────────────────────────────────────────────────────
+function InspectorBody({ block: _block, r }: { block: Block; r: RuleData }) {
+  return <ProcessBody r={r} />;
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// ProcessBody — 多筆賦值（每筆一件事）
+// ─────────────────────────────────────────────────────────────
+function ProcessBody({ r }: { r: RuleData }) {
+  return (
+    <div className="p-3 flex flex-col gap-2">
+      <SectionTitle>Metadata</SectionTitle>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+        <MetaRow label="Group" value={r.BLOCK_GROUP} />
+        <MetaRow label="Seq"   value={r.BLOCK_SEQ} />
+        {r.KEY && <MetaRow label="Key" value={r.KEY} />}
+      </div>
+
+      {r.PRE_BLOCK && r.PRE_BLOCK.length > 0 && (
+        <>
+          <SectionTitle>Pre-Blocks</SectionTitle>
+          <div className="flex flex-wrap gap-1.5">
+            {r.PRE_BLOCK.map((name, i) => (
+              <PreBlockBadge key={name} name={name} isPrimary={i === 0} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {r.VALUES.length > 0 && (
+        <>
+          <SectionTitle>Assignments ({r.VALUES.length})</SectionTitle>
+          <div className="flex flex-col gap-2">
+            {r.VALUES.map((v, i) => (
+              <AssignmentCard key={i} index={i} v={v} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+
+// #endregion

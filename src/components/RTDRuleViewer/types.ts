@@ -47,8 +47,69 @@ export type RuleData = {
   VALUES: BlockValue[];
 };
 
-// ── Canvas 上渲染用的 Block ─────────────────────────────────
-export type BlockType = RuleData["BLOCK_TYPE"];
+// ── Block 類型（對應 /public/RTDIconsNew/ 圖片名稱） ────────
+
+export const BlockTypes = {
+  // 實驗用
+  START:    "START",
+  PROCESS:  "PROCESS",
+  DECISION: "DECISION",
+  FUNCTION: "FUNCTION",
+  END:      "END",
+
+  // 正式類型
+  Action:         "Action",
+  Annotation:     "Annotation",
+  Bar:            "Bar",
+  Barline:        "Barline",
+  Batch:          "Batch",
+  BoxPlot:        "BoxPlot",
+  Compress:       "Compress",
+  Cumulate:       "Cumulate",
+  Data:           "Data",
+  DataSource:     "DataSource",
+  Delta:          "Delta",
+  DispatchScreen: "DispatchScreen",
+  Duration:       "Duration",
+  EventMaker:     "EventMaker",
+  Filter:         "Filter",
+  Function:       "Function",
+  Gantt:          "Gantt",
+  HyperLink:      "HyperLink",
+  Import:         "Import",
+  Index:          "Index",
+  Join:           "Join",
+  Line:           "Line",
+  LoopBegin:      "LoopBegin",
+  LoopEnd:        "LoopEnd",
+  MacroExport:    "MacroExport",
+  MacroFunction:  "MacroFunction",
+  MacroImport:    "MacroImport",
+  MacroParameter: "MacroParameter",
+  Percentage:     "Percentage",
+  Pie:            "Pie",
+  Procedure:      "Procedure",
+  Product:        "Product",
+  Repository:     "Repository",
+  ResultTable:    "ResultTable",
+  Rule:           "Rule",
+  Select:         "Select",
+  Snapshot:       "Snapshot",
+  Sort:           "Sort",
+  SQL:            "SQL",
+  StackBar:       "StackBar",
+  StackBarLine:   "StackBarLine",
+  StackTemporal:  "StackTemporal",
+  Table:          "Table",
+  Tag:            "Tag",
+  TempMaker:      "TempMaker",
+  Temporal:       "Temporal",
+  Union:          "Union",
+  XY:             "XY",
+  XYTable:        "XYTable",
+} as const;
+
+export type BlockType = (typeof BlockTypes)[keyof typeof BlockTypes];
 
 export type Block = {
   id: string;

@@ -3,7 +3,7 @@
 // Block 的建構、圖片快取、命中測試、繪製邏輯
 // ============================================================
 
-import type { Block, RuleData } from "./types";
+import type { Block, BlockType, RuleData } from "./types";
 
 export const BLOCK_SIZE = 80;
 
@@ -15,29 +15,29 @@ export function buildBlocks(data: RuleData[]): Block[] {
     y: r.POSY,
     w: BLOCK_SIZE,
     h: BLOCK_SIZE,
-    type: r.BLOCK_TYPE,
+    type: r.BLOCK_TYPE as Block["type"],
     label: r.BLOCK_NAME,
     raw: r,
   }));
 }
 
-// ── 圖片快取 ────────────────────────────────────────────────
-// 圖片放在 public 資料夾
-const BLOCK_IMAGE_SRC: Record<Block["type"], string> = {
-  START:    "/RuleViewerBlock/start.png",
-  PROCESS:  "/RuleViewerBlock/process.png",
-  DECISION: "/RuleViewerBlock/decision.png",
-  FUNCTION: "/RuleViewerBlock/function.png",
-  END:      "/RuleViewerBlock/end.png",
-};
+// ── 圖示版本切換 ─────────────────────────────────────────────
+const ICON_DIR_BASE = "/RTDIcons";
+const ICON_DIR_OLD = ICON_DIR_BASE + "/RTDIconsOld";
+const ICON_DIR_NEW = ICON_DIR_BASE + "/RTDIconsNew";
 
-const BLOCK_IMAGE_CACHE: Partial<Record<Block["type"], HTMLImageElement>> = {};
+function getIconSrc(type: BlockType, useNewIcons: boolean = true): string {
+  return `${useNewIcons ? ICON_DIR_NEW : ICON_DIR_OLD}/${type}.png`;
+}
 
-export function getBlockImage(type: Block["type"]): HTMLImageElement {
+// ── 圖片快取 ─────────────────────────────────────────────────
+const BLOCK_IMAGE_CACHE: Partial<Record<BlockType, HTMLImageElement>> = {};
+
+export function getBlockImage(type: BlockType): HTMLImageElement {
   let img = BLOCK_IMAGE_CACHE[type];
   if (!img) {
     img = new Image();
-    img.src = BLOCK_IMAGE_SRC[type];
+    img.src = getIconSrc(type);
     BLOCK_IMAGE_CACHE[type] = img;
   }
   return img;
