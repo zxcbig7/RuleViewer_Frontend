@@ -4,10 +4,8 @@
 // ============================================================
 
 import { useRef } from "react";
-import { BlockInspector } from "../components/RTDRuleViewer/BlockInspector";
-import { buildBlocks } from "../components/RTDRuleViewer/blockUtils";
-import { DEV_MOCK_RULES, MOCK_RULE_DATA } from "../components/RTDRuleViewer/devMock";
-import type { Block } from "../components/RTDRuleViewer/types";
+import { BlockInspector, buildBlocks, DEV_MOCK_RULES, MOCK_RULE_DATA } from "../components/RTDRuleViewer";
+import type { Block } from "../components/RTDRuleViewer";
 
 // 每種 type 各取一個代表性 Block
 const devBlocks   = buildBlocks(DEV_MOCK_RULES);

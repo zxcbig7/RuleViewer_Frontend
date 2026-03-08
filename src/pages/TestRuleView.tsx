@@ -4,9 +4,8 @@
 // ============================================================
 
 import { useRef, useState } from "react";
-import { RuleView } from "../components/RTDRuleViewer/RuleView";
-import { DEV_MOCK_RULES, MOCK_RULE_DATA, MOCK_RULES_BY_PHASE } from "../components/RTDRuleViewer/devMock";
-import type { RuleData, RuleViewHandle } from "../components/RTDRuleViewer/types";
+import { RuleView, DEV_MOCK_RULES, MOCK_RULE_DATA, MOCK_RULES_BY_PHASE } from "../components/RTDRuleViewer";
+import type { RuleData, RuleViewHandle } from "../components/RTDRuleViewer";
 
 type DatasetKey = string;
 
@@ -36,7 +35,7 @@ export default function TestRuleView() {
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
-      <div className="flex-shrink-0 bg-[#1f2a44] px-4 py-2 flex items-center gap-3 flex-wrap">
+      <div className="shrink-0 bg-slate-800 px-4 py-2 flex items-center gap-3 flex-wrap">
         <span className="text-white/60 text-xs font-semibold">資料集</span>
         {GROUPS.map(({ phase, keys }) => (
           <div key={phase} className="flex items-center gap-1.5">

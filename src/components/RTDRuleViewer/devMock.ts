@@ -13,37 +13,38 @@
 //   APF_FORMAT→ APF_NORMALIZER,    APF_FIELD_MAPPER,  APF_RECIPE_BUILDER
 // ============================================================
 
-import type { RuleData } from "./types";
+import { BlockTypes, type RuleData } from "./types";
 
 // ── DEV Phase（主副線視覺測試） ───────────────────────────────
-export const DEV_MOCK_PHASE     = "DEV";
-export const DEV_MOCK_RULE_NAME = "__DEV_主副線範例__";
+export const DEV_MOCK_PHASE = "DEV";
+export const DEV_MOCK_RULE_NAME = "__DEV_Example__";
+export const DEV_MOCK_RULE_NAME_ICON = "__DEV_Example_ICONS__";
 
 export const DEV_MOCK_RULES: RuleData[] = [
   {
     PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "START",      BLOCK_TYPE: "START",    BLOCK_GROUP: "G1", BLOCK_SEQ: "1",
+    BLOCK_NAME: "START", BLOCK_TYPE: BlockTypes.START, BLOCK_GROUP: "G1", BLOCK_SEQ: "1",
     KEY: null, POSX: 300, POSY: 100, PRE_BLOCK: null, VALUES: [],
   },
   {
     PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "DECISION",   BLOCK_TYPE: "DECISION", BLOCK_GROUP: "G1", BLOCK_SEQ: "6",
+    BLOCK_NAME: "DECISION", BLOCK_TYPE: BlockTypes.DECISION, BLOCK_GROUP: "G1", BLOCK_SEQ: "6",
     KEY: "COLUMN", POSX: 300, POSY: 250, PRE_BLOCK: ["START"],
     VALUES: [
       { COLUMN1: "RESULT", COLUMN2: "COLUMN", VALUE: 'IF COLUMN = "A" THEN "TRUE" ELSE "FALSE"' },
     ],
   },
-    {
+  {
     PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "TRUE_PATH2",   BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "G1", BLOCK_SEQ: "2",
-    KEY: "COLUMN", POSX: 500, POSY: 250, PRE_BLOCK: ["DECISION","FALSE_PATH"],
+    BLOCK_NAME: "TRUE_PATH2", BLOCK_TYPE: BlockTypes.PROCESS, BLOCK_GROUP: "G1", BLOCK_SEQ: "2",
+    KEY: "COLUMN", POSX: 500, POSY: 250, PRE_BLOCK: ["DECISION", "FALSE_PATH"],
     VALUES: [
       { COLUMN1: "RESULT", COLUMN2: "COLUMN", VALUE: 'IF COLUMN = "A" THEN "TRUE" ELSE "FALSE"' },
     ],
   },
   {
     PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "TRUE_PATH",  BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "G1", BLOCK_SEQ: "3",
+    BLOCK_NAME: "TRUE_PATH", BLOCK_TYPE: BlockTypes.PROCESS, BLOCK_GROUP: "G1", BLOCK_SEQ: "3",
     KEY: null, POSX: 150, POSY: 420, PRE_BLOCK: ["DECISION"],
     VALUES: [
       { COLUMN1: "STATUS", COLUMN2: null, VALUE: '/* 條件成立 */ "PASS"' },
@@ -51,7 +52,7 @@ export const DEV_MOCK_RULES: RuleData[] = [
   },
   {
     PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "FALSE_PATH", BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "G1", BLOCK_SEQ: "4",
+    BLOCK_NAME: "FALSE_PATH", BLOCK_TYPE: BlockTypes.PROCESS, BLOCK_GROUP: "G1", BLOCK_SEQ: "4",
     KEY: null, POSX: 450, POSY: 420, PRE_BLOCK: ["DECISION"],
     VALUES: [
       { COLUMN1: "STATUS", COLUMN2: null, VALUE: '/* 條件不成立 */ "SKIP"' },
@@ -59,7 +60,7 @@ export const DEV_MOCK_RULES: RuleData[] = [
   },
   {
     PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "MERGE",      BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "G1", BLOCK_SEQ: "5",
+    BLOCK_NAME: "MERGE", BLOCK_TYPE: BlockTypes.PROCESS, BLOCK_GROUP: "G1", BLOCK_SEQ: "5",
     KEY: null, POSX: 300, POSY: 600,
     PRE_BLOCK: ["TRUE_PATH", "FALSE_PATH"], // [0]=主線 [1]=副線
     VALUES: [
@@ -68,18 +69,95 @@ export const DEV_MOCK_RULES: RuleData[] = [
   },
   {
     PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "END",        BLOCK_TYPE: "END",      BLOCK_GROUP: "G1", BLOCK_SEQ: "6",
+    BLOCK_NAME: "END", BLOCK_TYPE: BlockTypes.END, BLOCK_GROUP: "G1", BLOCK_SEQ: "6",
     KEY: null, POSX: 300, POSY: 760, PRE_BLOCK: ["MERGE"], VALUES: [],
   },
 ];
+
+// #region 各種 Block 類型示例（10 欄 grid，每格 100px）
+function iconBlock(name: string, type: string, col: number, row: number): RuleData {
+  return {
+    PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME_ICON,
+    BLOCK_NAME: name, BLOCK_TYPE: type,
+    BLOCK_GROUP: "G1", BLOCK_SEQ: "1",
+    KEY: "Key Test", POSX: col * 100, POSY: row * 100,
+    PRE_BLOCK: null, VALUES: [
+      { COLUMN1: null, COLUMN2: null, VALUE: '"Key Test"' },
+      { COLUMN1: "Col1", COLUMN2: null, VALUE: '"Key Test"' },
+      { COLUMN1: "Col2", COLUMN2: "Col3", VALUE: '"Key Test"' },
+    ],
+  };
+}
+
+export const DEV_MOCK_RULE_ICON: RuleData[] = [
+  // Input (row 0)
+  iconBlock("Data",           BlockTypes.Data,           0, 0),
+  iconBlock("DataSource",     BlockTypes.DataSource,     1, 0),
+  iconBlock("Import",         BlockTypes.Import,         2, 0),
+  iconBlock("MacroImport",    BlockTypes.MacroImport,    3, 0),
+  iconBlock("MacroParameter", BlockTypes.MacroParameter, 4, 0),
+  iconBlock("Repository",     BlockTypes.Repository,     5, 0),
+  iconBlock("SQL",            BlockTypes.SQL,            6, 0),
+  iconBlock("Tag",            BlockTypes.Tag,            7, 0),
+
+  // Data (row 1)
+  iconBlock("Index",          BlockTypes.Index,          0, 1),
+  iconBlock("Join",           BlockTypes.Join,           1, 1),
+  iconBlock("MacroFunction",  BlockTypes.MacroFunction,  2, 1),
+  iconBlock("Procedure",      BlockTypes.Procedure,      3, 1),
+  iconBlock("Union",          BlockTypes.Union,          4, 1),
+
+  // Function (row 2–3)
+  iconBlock("Batch",          BlockTypes.Batch,          0, 2),
+  iconBlock("Compress",       BlockTypes.Compress,       1, 2),
+  iconBlock("Cumulate",       BlockTypes.Cumulate,       2, 2),
+  iconBlock("Delta",          BlockTypes.Delta,          3, 2),
+  iconBlock("Duration",       BlockTypes.Duration,       4, 2),
+  iconBlock("EventMaker",     BlockTypes.EventMaker,     5, 2),
+  iconBlock("Filter",         BlockTypes.Filter,         6, 2),
+  iconBlock("Function",       BlockTypes.Function,       7, 2),
+  iconBlock("HyperLink",      BlockTypes.HyperLink,      8, 2),
+  iconBlock("LoopBegin",      BlockTypes.LoopBegin,      9, 2),
+  iconBlock("LoopEnd",        BlockTypes.LoopEnd,        0, 3),
+  iconBlock("Percentage",     BlockTypes.Percentage,     1, 3),
+  iconBlock("Product",        BlockTypes.Product,        2, 3),
+  iconBlock("Rule",           BlockTypes.Rule,           3, 3),
+  iconBlock("Select",         BlockTypes.Select,         4, 3),
+  iconBlock("Snapshot",       BlockTypes.Snapshot,       5, 3),
+  iconBlock("Sort",           BlockTypes.Sort,           6, 3),
+  iconBlock("TempMaker",      BlockTypes.TempMaker,      7, 3),
+
+  // Output (row 4–5)
+  iconBlock("Action",         BlockTypes.Action,         0, 4),
+  iconBlock("Bar",            BlockTypes.Bar,            1, 4),
+  iconBlock("Barline",        BlockTypes.Barline,        2, 4),
+  iconBlock("BoxPlot",        BlockTypes.BoxPlot,        3, 4),
+  iconBlock("DispatchScreen", BlockTypes.DispatchScreen, 4, 4),
+  iconBlock("Gantt",          BlockTypes.Gantt,          5, 4),
+  iconBlock("Line",           BlockTypes.Line,           6, 4),
+  iconBlock("MacroExport",    BlockTypes.MacroExport,    7, 4),
+  iconBlock("Pie",            BlockTypes.Pie,            8, 4),
+  iconBlock("ResultTable",    BlockTypes.ResultTable,    9, 4),
+  iconBlock("StackBar",       BlockTypes.StackBar,       0, 5),
+  iconBlock("StackBarLine",   BlockTypes.StackBarLine,   1, 5),
+  iconBlock("StackTemporal",  BlockTypes.StackTemporal,  2, 5),
+  iconBlock("Table",          BlockTypes.Table,          3, 5),
+  iconBlock("Temporal",       BlockTypes.Temporal,       4, 5),
+  iconBlock("XY",             BlockTypes.XY,             5, 5),
+  iconBlock("XYTable",        BlockTypes.XYTable,        6, 5),
+
+  // Other (row 6)
+  iconBlock("Annotation",     BlockTypes.Annotation,     0, 6),
+];
+// #endregion
 
 // ── APF Phase 定義 ────────────────────────────────────────────
 export const MOCK_PHASES = ["APF_CHECK", "APF_FORMAT"] as const;
 export type MockPhase = typeof MOCK_PHASES[number];
 
 export const MOCK_RULES_BY_PHASE: Record<MockPhase, string[]> = {
-  APF_CHECK:  ["APF_LOT_VALIDATOR", "APF_RECIPE_CHECK",  "APF_LOT_SCHEDULER"],
-  APF_FORMAT: ["APF_NORMALIZER",    "APF_FIELD_MAPPER",  "APF_RECIPE_BUILDER"],
+  APF_CHECK: ["APF_LOT_VALIDATOR", "APF_RECIPE_CHECK", "APF_LOT_SCHEDULER"],
+  APF_FORMAT: ["APF_NORMALIZER", "APF_FIELD_MAPPER", "APF_RECIPE_BUILDER"],
 };
 
 // ── APF_CHECK / APF_LOT_VALIDATOR ────────────────────────────
@@ -100,82 +178,86 @@ export const MOCK_RULES_BY_PHASE: Record<MockPhase, string[]> = {
 const APF_LOT_VALIDATOR: RuleData[] = [
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_VALIDATOR",
-    BLOCK_NAME: "START_LOT_VAL",  BLOCK_TYPE: "START",    BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "1",
+    BLOCK_NAME: "START_LOT_VAL", BLOCK_TYPE: "START", BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "1",
     KEY: null, POSX: 300, POSY: 50, PRE_BLOCK: null, VALUES: [],
   },
   {
     // 從 DB 取得批次基本屬性（LOT_ID 為輸入參數）
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_VALIDATOR",
-    BLOCK_NAME: "GET_LOT_ATTR",   BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "2",
+    BLOCK_NAME: "GET_LOT_ATTR", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "2",
     KEY: "LOT_ID", POSX: 300, POSY: 200, PRE_BLOCK: ["START_LOT_VAL"],
     VALUES: [
-      { COLUMN1: "STAGE",      COLUMN2: "LOT_ID",   VALUE: "GetCurrentStage(LOT_ID)" },
-      { COLUMN1: "LOT_GRADE",  COLUMN2: "LOT_ID",   VALUE: "GetLotGrade(LOT_ID)" },
-      { COLUMN1: "HOLD_FLAG",  COLUMN2: "LOT_ID",   VALUE: "GetHoldFlag(LOT_ID)" },
+      { COLUMN1: "STAGE", COLUMN2: "LOT_ID", VALUE: "GetCurrentStage(LOT_ID)" },
+      { COLUMN1: "LOT_GRADE", COLUMN2: "LOT_ID", VALUE: "GetLotGrade(LOT_ID)" },
+      { COLUMN1: "HOLD_FLAG", COLUMN2: "LOT_ID", VALUE: "GetHoldFlag(LOT_ID)" },
     ],
   },
   {
     // 依 STAGE 取得等待時間與上限（STAGE 來自上一個 Block）
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_VALIDATOR",
-    BLOCK_NAME: "GET_WAIT_INFO",  BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "3",
+    BLOCK_NAME: "GET_WAIT_INFO", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "3",
     KEY: "STAGE", POSX: 300, POSY: 370, PRE_BLOCK: ["GET_LOT_ATTR"],
     VALUES: [
-      { COLUMN1: "MAX_WAIT_HR", COLUMN2: "STAGE",   VALUE: "GetMaxWaitHours(STAGE, LOT_GRADE)" },
-      { COLUMN1: "WAIT_HR",     COLUMN2: "STAGE",   VALUE: "GetWaitHours(LOT_ID, STAGE)" },
+      { COLUMN1: "MAX_WAIT_HR", COLUMN2: "STAGE", VALUE: "GetMaxWaitHours(STAGE, LOT_GRADE)" },
+      { COLUMN1: "WAIT_HR", COLUMN2: "STAGE", VALUE: "GetWaitHours(LOT_ID, STAGE)" },
     ],
   },
   {
     // 判斷是否需要 Hold，THEN 寫入反藍 Log（[$...$] 格式）
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_VALIDATOR",
-    BLOCK_NAME: "CHECK_HOLD",     BLOCK_TYPE: "DECISION", BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "4",
+    BLOCK_NAME: "CHECK_HOLD", BLOCK_TYPE: "DECISION", BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "4",
     KEY: "DISABLE_REASON", POSX: 300, POSY: 540, PRE_BLOCK: ["GET_WAIT_INFO"],
     VALUES: [
-      { COLUMN1: "HOLD_REASON",    COLUMN2: "HOLD_FLAG",
-        VALUE: 'IF HOLD_FLAG = "Y"                    THEN "HOLD"\nELSE IF WAIT_HR > MAX_WAIT_HR           THEN "OVERTIME"\nELSE IF ValidateLotFmt(LOT_ID) = "FAIL" THEN "INVALID"\nELSE "PASS"' },
-      { COLUMN1: "DISABLE_REASON", COLUMN2: "HOLD_FLAG",
-        VALUE: 'IF HOLD_FLAG = "Y"                    THEN "[$ALREADY_ON_HOLD$]"\nELSE IF WAIT_HR > MAX_WAIT_HR           THEN "[$WAIT_OVER_LIMIT$]"\nELSE IF ValidateLotFmt(LOT_ID) = "FAIL" THEN "[$LOT_FORMAT_INVALID$]"\nELSE ""' },
+      {
+        COLUMN1: "HOLD_REASON", COLUMN2: "HOLD_FLAG",
+        VALUE: 'IF HOLD_FLAG = "Y"                    THEN "HOLD"\nELSE IF WAIT_HR > MAX_WAIT_HR           THEN "OVERTIME"\nELSE IF ValidateLotFmt(LOT_ID) = "FAIL" THEN "INVALID"\nELSE "PASS"'
+      },
+      {
+        COLUMN1: "DISABLE_REASON", COLUMN2: "HOLD_FLAG",
+        VALUE: 'IF HOLD_FLAG = "Y"                    THEN "[$ALREADY_ON_HOLD$]"\nELSE IF WAIT_HR > MAX_WAIT_HR           THEN "[$WAIT_OVER_LIMIT$]"\nELSE IF ValidateLotFmt(LOT_ID) = "FAIL" THEN "[$LOT_FORMAT_INVALID$]"\nELSE ""'
+      },
     ],
   },
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_VALIDATOR",
-    BLOCK_NAME: "LOT_VALID",      BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "5",
+    BLOCK_NAME: "LOT_VALID", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "5",
     KEY: null, POSX: 130, POSY: 730, PRE_BLOCK: ["CHECK_HOLD"],
     VALUES: [
-      { COLUMN1: "LOT_STATUS",  COLUMN2: null,           VALUE: '"VALID"' },
-      { COLUMN1: "PASS_MSG",    COLUMN2: "LOT_ID",       VALUE: 'ConcatMsg("LOT_OK", LOT_ID)' },
+      { COLUMN1: "LOT_STATUS", COLUMN2: null, VALUE: '"VALID"' },
+      { COLUMN1: "PASS_MSG", COLUMN2: "LOT_ID", VALUE: 'ConcatMsg("LOT_OK", LOT_ID)' },
     ],
   },
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_VALIDATOR",
-    BLOCK_NAME: "LOT_INVALID",    BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "6",
+    BLOCK_NAME: "LOT_INVALID", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "6",
     KEY: null, POSX: 470, POSY: 730, PRE_BLOCK: ["CHECK_HOLD"],
     VALUES: [
-      { COLUMN1: "LOT_STATUS",  COLUMN2: "HOLD_REASON",  VALUE: "HOLD_REASON" },
-      { COLUMN1: "HOLD_MSG",    COLUMN2: "HOLD_REASON",  VALUE: 'FormatHoldMsg(LOT_ID, HOLD_REASON)' },
+      { COLUMN1: "LOT_STATUS", COLUMN2: "HOLD_REASON", VALUE: "HOLD_REASON" },
+      { COLUMN1: "HOLD_MSG", COLUMN2: "HOLD_REASON", VALUE: 'FormatHoldMsg(LOT_ID, HOLD_REASON)' },
     ],
   },
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_VALIDATOR",
-    BLOCK_NAME: "MERGE_VAL",      BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "7",
+    BLOCK_NAME: "MERGE_VAL", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "7",
     KEY: null, POSX: 300, POSY: 910,
     PRE_BLOCK: ["LOT_VALID", "LOT_INVALID"], // [0]=主線 [1]=副線
     VALUES: [
-      { COLUMN1: "MERGE_STATUS", COLUMN2: "LOT_STATUS",  VALUE: 'MergeValidation(LOT_STATUS, HOLD_REASON)' },
-      { COLUMN1: "NOTIFY_FLAG",  COLUMN2: "LOT_GRADE",   VALUE: 'IF LOT_GRADE = "A" AND HOLD_REASON != "PASS" THEN "Y" ELSE "N"' },
+      { COLUMN1: "MERGE_STATUS", COLUMN2: "LOT_STATUS", VALUE: 'MergeValidation(LOT_STATUS, HOLD_REASON)' },
+      { COLUMN1: "NOTIFY_FLAG", COLUMN2: "LOT_GRADE", VALUE: 'IF LOT_GRADE = "A" AND HOLD_REASON != "PASS" THEN "Y" ELSE "N"' },
     ],
   },
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_VALIDATOR",
-    BLOCK_NAME: "LOG_RESULT",     BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "8",
+    BLOCK_NAME: "LOG_RESULT", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "8",
     KEY: null, POSX: 300, POSY: 1080, PRE_BLOCK: ["MERGE_VAL"],
     VALUES: [
-      { COLUMN1: "LOG_LEVEL",   COLUMN2: "HOLD_REASON",  VALUE: 'IF HOLD_REASON = "PASS" THEN "INFO" ELSE "HOLD"' },
-      { COLUMN1: "LOG_DETAIL",  COLUMN2: "HOLD_REASON",  VALUE: 'IF HOLD_REASON = "PASS" THEN LOT_ID ELSE ConcatStr(LOT_ID, HOLD_REASON)' },
+      { COLUMN1: "LOG_LEVEL", COLUMN2: "HOLD_REASON", VALUE: 'IF HOLD_REASON = "PASS" THEN "INFO" ELSE "HOLD"' },
+      { COLUMN1: "LOG_DETAIL", COLUMN2: "HOLD_REASON", VALUE: 'IF HOLD_REASON = "PASS" THEN LOT_ID ELSE ConcatStr(LOT_ID, HOLD_REASON)' },
     ],
   },
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_VALIDATOR",
-    BLOCK_NAME: "END_LOT_VAL",    BLOCK_TYPE: "END",      BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "9",
+    BLOCK_NAME: "END_LOT_VAL", BLOCK_TYPE: "END", BLOCK_GROUP: "VALIDATE", BLOCK_SEQ: "9",
     KEY: null, POSX: 300, POSY: 1240, PRE_BLOCK: ["LOG_RESULT"], VALUES: [],
   },
 ];
@@ -196,18 +278,18 @@ const APF_LOT_VALIDATOR: RuleData[] = [
 const APF_RECIPE_CHECK: RuleData[] = [
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_RECIPE_CHECK",
-    BLOCK_NAME: "START_RCP_CHK",   BLOCK_TYPE: "START",    BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "1",
+    BLOCK_NAME: "START_RCP_CHK", BLOCK_TYPE: "START", BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "1",
     KEY: "LOTLIST.sql", POSX: 300, POSY: 50, PRE_BLOCK: null, VALUES: [],
   },
   {
     // 取得 Recipe 版本與到期日（RECIPE_NAME 為輸入參數）
     PHASE: "APF_CHECK", RULE_NAME: "APF_RECIPE_CHECK",
-    BLOCK_NAME: "GET_RECIPE_VER",  BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "2",
+    BLOCK_NAME: "GET_RECIPE_VER", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "2",
     KEY: "RECIPE_NAME", POSX: 300, POSY: 200, PRE_BLOCK: ["START_RCP_CHK"],
     VALUES: [
-      { COLUMN1: "RECIPE_VER",    COLUMN2: "RECIPE_NAME",  VALUE: "GetRecipeVersion(RECIPE_NAME, EQUIP_CODE)" },
-      { COLUMN1: "EXPIRY_DATE",   COLUMN2: "RECIPE_VER",   VALUE: "GetRecipeExpiry(RECIPE_VER)" },
-      { COLUMN1: "$ChamberID",    COLUMN2: "EQUIP_CODE",   VALUE: "GetChamber(EQUIP_CODE)" },
+      { COLUMN1: "RECIPE_VER", COLUMN2: "RECIPE_NAME", VALUE: "GetRecipeVersion(RECIPE_NAME, EQUIP_CODE)" },
+      { COLUMN1: "EXPIRY_DATE", COLUMN2: "RECIPE_VER", VALUE: "GetRecipeExpiry(RECIPE_VER)" },
+      { COLUMN1: "$ChamberID", COLUMN2: "EQUIP_CODE", VALUE: "GetChamber(EQUIP_CODE)" },
     ],
   },
   {
@@ -216,44 +298,48 @@ const APF_RECIPE_CHECK: RuleData[] = [
     BLOCK_NAME: "CHECK_VER_VALID", BLOCK_TYPE: "DECISION", BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "3",
     KEY: "DISABLE_REASON", POSX: 300, POSY: 370, PRE_BLOCK: ["GET_RECIPE_VER"],
     VALUES: [
-      { COLUMN1: "VER_STATUS",     COLUMN2: "RECIPE_VER",
-        VALUE: 'IF RECIPE_VER = "" OR RECIPE_VER = "N/A" THEN "MISSING"\nELSE IF EXPIRY_DATE < TODAY()           THEN "EXPIRED"\nELSE "APPLY_LATEST"' },
-      { COLUMN1: "DISABLE_REASON", COLUMN2: "RECIPE_VER",
-        VALUE: 'IF RECIPE_VER = "" OR RECIPE_VER = "N/A" THEN "[$RECIPE_VER_MISSING$]"\nELSE IF EXPIRY_DATE < TODAY()           THEN "[$RECIPE_EXPIRED$]"\nELSE ""' },
+      {
+        COLUMN1: "VER_STATUS", COLUMN2: "RECIPE_VER",
+        VALUE: 'IF RECIPE_VER = "" OR RECIPE_VER = "N/A" THEN "MISSING"\nELSE IF EXPIRY_DATE < TODAY()           THEN "EXPIRED"\nELSE "APPLY_LATEST"'
+      },
+      {
+        COLUMN1: "DISABLE_REASON", COLUMN2: "RECIPE_VER",
+        VALUE: 'IF RECIPE_VER = "" OR RECIPE_VER = "N/A" THEN "[$RECIPE_VER_MISSING$]"\nELSE IF EXPIRY_DATE < TODAY()           THEN "[$RECIPE_EXPIRED$]"\nELSE ""'
+      },
     ],
   },
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_RECIPE_CHECK",
-    BLOCK_NAME: "APPLY_RECIPE",    BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "4",
+    BLOCK_NAME: "APPLY_RECIPE", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "4",
     KEY: null, POSX: 140, POSY: 560, PRE_BLOCK: ["CHECK_VER_VALID"],
     VALUES: [
-      { COLUMN1: "APPLY_STATUS",  COLUMN2: "RECIPE_VER",   VALUE: "ApplyRecipe(RECIPE_NAME, RECIPE_VER)" },
-      { COLUMN1: "EQUIP_PARAM",   COLUMN2: "$ChamberID",   VALUE: "SetEquipParam($ChamberID, RECIPE_VER)" },
+      { COLUMN1: "APPLY_STATUS", COLUMN2: "RECIPE_VER", VALUE: "ApplyRecipe(RECIPE_NAME, RECIPE_VER)" },
+      { COLUMN1: "EQUIP_PARAM", COLUMN2: "$ChamberID", VALUE: "SetEquipParam($ChamberID, RECIPE_VER)" },
     ],
   },
   {
     // VER_STATUS 非 APPLY_LATEST → 套用 Default
     PHASE: "APF_CHECK", RULE_NAME: "APF_RECIPE_CHECK",
-    BLOCK_NAME: "DEFAULT_RECIPE",  BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "5",
+    BLOCK_NAME: "DEFAULT_RECIPE", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "5",
     KEY: null, POSX: 460, POSY: 560, PRE_BLOCK: ["CHECK_VER_VALID"],
     VALUES: [
-      { COLUMN1: "APPLY_STATUS",  COLUMN2: "VER_STATUS",   VALUE: 'IF VER_STATUS = "MISSING" OR VER_STATUS = "EXPIRED" THEN ApplyDefaultRecipe(EQUIP_CODE) ELSE "SKIP"' },
-      { COLUMN1: "FALLBACK_LOG",  COLUMN2: "DISABLE_REASON", VALUE: "FormatWarn(DISABLE_REASON, RECIPE_NAME, EQUIP_CODE)" },
+      { COLUMN1: "APPLY_STATUS", COLUMN2: "VER_STATUS", VALUE: 'IF VER_STATUS = "MISSING" OR VER_STATUS = "EXPIRED" THEN ApplyDefaultRecipe(EQUIP_CODE) ELSE "SKIP"' },
+      { COLUMN1: "FALLBACK_LOG", COLUMN2: "DISABLE_REASON", VALUE: "FormatWarn(DISABLE_REASON, RECIPE_NAME, EQUIP_CODE)" },
     ],
   },
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_RECIPE_CHECK",
-    BLOCK_NAME: "MERGE_RECIPE",    BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "6",
+    BLOCK_NAME: "MERGE_RECIPE", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "6",
     KEY: null, POSX: 300, POSY: 740,
     PRE_BLOCK: ["APPLY_RECIPE", "DEFAULT_RECIPE"], // [0]=主線 [1]=副線
     VALUES: [
-      { COLUMN1: "VERIFY_STATUS",  COLUMN2: "EQUIP_CODE",   VALUE: "VerifyRecipeApplied(EQUIP_CODE)" },
+      { COLUMN1: "VERIFY_STATUS", COLUMN2: "EQUIP_CODE", VALUE: "VerifyRecipeApplied(EQUIP_CODE)" },
       { COLUMN1: "DISABLE_REASON", COLUMN2: "APPLY_STATUS", VALUE: 'IF APPLY_STATUS = "FAIL" AND RECIPE_VER != "SKIP" THEN "[$RECIPE_APPLY_FAIL$]" ELSE ""' },
     ],
   },
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_RECIPE_CHECK",
-    BLOCK_NAME: "END_RCP_CHK",     BLOCK_TYPE: "END",      BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "7",
+    BLOCK_NAME: "END_RCP_CHK", BLOCK_TYPE: "END", BLOCK_GROUP: "RECIPE", BLOCK_SEQ: "7",
     KEY: null, POSX: 300, POSY: 900, PRE_BLOCK: ["MERGE_RECIPE"], VALUES: [],
   },
 ];
@@ -276,87 +362,91 @@ const APF_RECIPE_CHECK: RuleData[] = [
 const APF_LOT_SCHEDULER: RuleData[] = [
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_SCHEDULER",
-    BLOCK_NAME: "START_SCHED",     BLOCK_TYPE: "START",    BLOCK_GROUP: "SCHED", BLOCK_SEQ: "1",
+    BLOCK_NAME: "START_SCHED", BLOCK_TYPE: "START", BLOCK_GROUP: "SCHED", BLOCK_SEQ: "1",
     KEY: null, POSX: 300, POSY: 50, PRE_BLOCK: null, VALUES: [],
   },
   {
     // 取得批次屬性（LOT_ID, EQUIP_CODE 為輸入參數）
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_SCHEDULER",
-    BLOCK_NAME: "GET_LOT_INFO",    BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "SCHED", BLOCK_SEQ: "2",
+    BLOCK_NAME: "GET_LOT_INFO", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "SCHED", BLOCK_SEQ: "2",
     KEY: "LOT_ID", POSX: 300, POSY: 200, PRE_BLOCK: ["START_SCHED"],
     VALUES: [
-      { COLUMN1: "LOT_GRADE",    COLUMN2: "LOT_ID",     VALUE: "GetLotGrade(LOT_ID)" },
-      { COLUMN1: "MAX_WAIT",     COLUMN2: "LOT_GRADE",  VALUE: "GetMaxWaitHours(LOT_GRADE)" },
+      { COLUMN1: "LOT_GRADE", COLUMN2: "LOT_ID", VALUE: "GetLotGrade(LOT_ID)" },
+      { COLUMN1: "MAX_WAIT", COLUMN2: "LOT_GRADE", VALUE: "GetMaxWaitHours(LOT_GRADE)" },
     ],
   },
   {
     // 取得設備狀態與佇列深度（依 EQUIP_CODE）
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_SCHEDULER",
-    BLOCK_NAME: "GET_EQUIP_INFO",  BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "SCHED", BLOCK_SEQ: "3",
+    BLOCK_NAME: "GET_EQUIP_INFO", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "SCHED", BLOCK_SEQ: "3",
     KEY: "EQUIP_CODE", POSX: 300, POSY: 370, PRE_BLOCK: ["GET_LOT_INFO"],
     VALUES: [
       { COLUMN1: "EQUIP_STATUS", COLUMN2: "EQUIP_CODE", VALUE: "GetEquipStatus(EQUIP_CODE)" },
-      { COLUMN1: "QUEUE_DEPTH",  COLUMN2: "EQUIP_CODE", VALUE: "GetQueueDepth(EQUIP_CODE)" },
-      { COLUMN1: "MAX_QUEUE",    COLUMN2: "EQUIP_CODE", VALUE: "GetMaxQueueSize(EQUIP_CODE)" },
+      { COLUMN1: "QUEUE_DEPTH", COLUMN2: "EQUIP_CODE", VALUE: "GetQueueDepth(EQUIP_CODE)" },
+      { COLUMN1: "MAX_QUEUE", COLUMN2: "EQUIP_CODE", VALUE: "GetMaxQueueSize(EQUIP_CODE)" },
     ],
   },
   {
     // 判斷是否可排程，THEN 寫入反藍 Log
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_SCHEDULER",
-    BLOCK_NAME: "ASSESS_SCHED",    BLOCK_TYPE: "DECISION", BLOCK_GROUP: "SCHED", BLOCK_SEQ: "4",
+    BLOCK_NAME: "ASSESS_SCHED", BLOCK_TYPE: "DECISION", BLOCK_GROUP: "SCHED", BLOCK_SEQ: "4",
     KEY: "DISABLE_REASON", POSX: 300, POSY: 540, PRE_BLOCK: ["GET_EQUIP_INFO"],
     VALUES: [
-      { COLUMN1: "SCHED_STATUS",   COLUMN2: "EQUIP_STATUS",
-        VALUE: 'IF EQUIP_STATUS = "DOWN"                         THEN "FAIL"\nELSE IF LOT_GRADE = "A" AND EQUIP_STATUS != "IDLE"  THEN "WAIT"\nELSE IF QUEUE_DEPTH >= MAX_QUEUE                   THEN "FULL"\nELSE "OK"' },
-      { COLUMN1: "DISABLE_REASON", COLUMN2: "EQUIP_STATUS",
-        VALUE: 'IF EQUIP_STATUS = "DOWN"                         THEN "[$EQUIP_DOWN$]"\nELSE IF LOT_GRADE = "A" AND EQUIP_STATUS != "IDLE"  THEN "[$EQUIP_NOT_READY$]"\nELSE IF QUEUE_DEPTH >= MAX_QUEUE                   THEN "[$QUEUE_FULL$]"\nELSE ""' },
+      {
+        COLUMN1: "SCHED_STATUS", COLUMN2: "EQUIP_STATUS",
+        VALUE: 'IF EQUIP_STATUS = "DOWN"                         THEN "FAIL"\nELSE IF LOT_GRADE = "A" AND EQUIP_STATUS != "IDLE"  THEN "WAIT"\nELSE IF QUEUE_DEPTH >= MAX_QUEUE                   THEN "FULL"\nELSE "OK"'
+      },
+      {
+        COLUMN1: "DISABLE_REASON", COLUMN2: "EQUIP_STATUS",
+        VALUE: 'IF EQUIP_STATUS = "DOWN"                         THEN "[$EQUIP_DOWN$]"\nELSE IF LOT_GRADE = "A" AND EQUIP_STATUS != "IDLE"  THEN "[$EQUIP_NOT_READY$]"\nELSE IF QUEUE_DEPTH >= MAX_QUEUE                   THEN "[$QUEUE_FULL$]"\nELSE ""'
+      },
     ],
   },
   {
     // SCHED_STATUS = "OK" 且 LOT_GRADE = "A" → 高優先排程
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_SCHEDULER",
-    BLOCK_NAME: "HIGH_PRI_PATH",   BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "SCHED", BLOCK_SEQ: "5",
+    BLOCK_NAME: "HIGH_PRI_PATH", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "SCHED", BLOCK_SEQ: "5",
     KEY: null, POSX: 120, POSY: 730, PRE_BLOCK: ["ASSESS_SCHED"],
     VALUES: [
-      { COLUMN1: "PRIORITY",      COLUMN2: "LOT_GRADE",   VALUE: '"HIGH"' },
+      { COLUMN1: "PRIORITY", COLUMN2: "LOT_GRADE", VALUE: '"HIGH"' },
       { COLUMN1: "SCHEDULE_TIME", COLUMN2: "SCHED_STATUS", VALUE: 'IF SCHED_STATUS = "OK" THEN "IMMEDIATE" ELSE "SKIP"' },
-      { COLUMN1: "ASSIGN_FLAG",   COLUMN2: "SCHED_STATUS", VALUE: 'IF SCHED_STATUS = "OK" THEN "Y" ELSE "N"' },
+      { COLUMN1: "ASSIGN_FLAG", COLUMN2: "SCHED_STATUS", VALUE: 'IF SCHED_STATUS = "OK" THEN "Y" ELSE "N"' },
     ],
   },
   {
     // LOT_GRADE != "A" → 一般優先排程
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_SCHEDULER",
-    BLOCK_NAME: "NORM_PRI_PATH",   BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "SCHED", BLOCK_SEQ: "6",
+    BLOCK_NAME: "NORM_PRI_PATH", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "SCHED", BLOCK_SEQ: "6",
     KEY: null, POSX: 480, POSY: 730, PRE_BLOCK: ["ASSESS_SCHED"],
     VALUES: [
-      { COLUMN1: "PRIORITY",      COLUMN2: "LOT_GRADE",   VALUE: 'IF LOT_GRADE = "B" THEN "NORMAL" ELSE "LOW"' },
-      { COLUMN1: "SCHEDULE_TIME", COLUMN2: "MAX_WAIT",    VALUE: "CalcNextSlot(EQUIP_CODE, MAX_WAIT)" },
-      { COLUMN1: "ASSIGN_FLAG",   COLUMN2: "SCHED_STATUS", VALUE: 'IF SCHED_STATUS = "OK" THEN "Y" ELSE "N"' },
+      { COLUMN1: "PRIORITY", COLUMN2: "LOT_GRADE", VALUE: 'IF LOT_GRADE = "B" THEN "NORMAL" ELSE "LOW"' },
+      { COLUMN1: "SCHEDULE_TIME", COLUMN2: "MAX_WAIT", VALUE: "CalcNextSlot(EQUIP_CODE, MAX_WAIT)" },
+      { COLUMN1: "ASSIGN_FLAG", COLUMN2: "SCHED_STATUS", VALUE: 'IF SCHED_STATUS = "OK" THEN "Y" ELSE "N"' },
     ],
   },
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_SCHEDULER",
-    BLOCK_NAME: "MERGE_SCHED",     BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "SCHED", BLOCK_SEQ: "7",
+    BLOCK_NAME: "MERGE_SCHED", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "SCHED", BLOCK_SEQ: "7",
     KEY: null, POSX: 300, POSY: 920,
     PRE_BLOCK: ["HIGH_PRI_PATH", "NORM_PRI_PATH"], // [0]=主線 [1]=副線
     VALUES: [
-      { COLUMN1: "MERGE_RESULT",  COLUMN2: "SCHEDULE_TIME", VALUE: "MergeSchedule(LOT_ID, SCHEDULE_TIME, ASSIGN_FLAG)" },
-      { COLUMN1: "EQUIP_RESERVE", COLUMN2: "ASSIGN_FLAG",   VALUE: 'IF ASSIGN_FLAG = "Y" THEN ReserveEquip(EQUIP_CODE, SCHEDULE_TIME) ELSE "SKIP"' },
-      { COLUMN1: "NOTIFY_FLAG",   COLUMN2: "SCHED_STATUS",  VALUE: 'IF SCHED_STATUS != "OK" THEN "Y" ELSE "N"' },
+      { COLUMN1: "MERGE_RESULT", COLUMN2: "SCHEDULE_TIME", VALUE: "MergeSchedule(LOT_ID, SCHEDULE_TIME, ASSIGN_FLAG)" },
+      { COLUMN1: "EQUIP_RESERVE", COLUMN2: "ASSIGN_FLAG", VALUE: 'IF ASSIGN_FLAG = "Y" THEN ReserveEquip(EQUIP_CODE, SCHEDULE_TIME) ELSE "SKIP"' },
+      { COLUMN1: "NOTIFY_FLAG", COLUMN2: "SCHED_STATUS", VALUE: 'IF SCHED_STATUS != "OK" THEN "Y" ELSE "N"' },
     ],
   },
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_SCHEDULER",
-    BLOCK_NAME: "UPDATE_SCHEDULE", BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "SCHED", BLOCK_SEQ: "8",
+    BLOCK_NAME: "UPDATE_SCHEDULE", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "SCHED", BLOCK_SEQ: "8",
     KEY: null, POSX: 300, POSY: 1090, PRE_BLOCK: ["MERGE_SCHED"],
     VALUES: [
-      { COLUMN1: "WRITE_STATUS", COLUMN2: "SCHEDULE_TIME",  VALUE: "WriteSchedule(LOT_ID, EQUIP_CODE, SCHEDULE_TIME, PRIORITY)" },
-      { COLUMN1: "NOTIFY_SENT",  COLUMN2: "DISABLE_REASON", VALUE: 'IF DISABLE_REASON != "" THEN SendAlert(LOT_ID, DISABLE_REASON) ELSE "SKIP"' },
+      { COLUMN1: "WRITE_STATUS", COLUMN2: "SCHEDULE_TIME", VALUE: "WriteSchedule(LOT_ID, EQUIP_CODE, SCHEDULE_TIME, PRIORITY)" },
+      { COLUMN1: "NOTIFY_SENT", COLUMN2: "DISABLE_REASON", VALUE: 'IF DISABLE_REASON != "" THEN SendAlert(LOT_ID, DISABLE_REASON) ELSE "SKIP"' },
     ],
   },
   {
     PHASE: "APF_CHECK", RULE_NAME: "APF_LOT_SCHEDULER",
-    BLOCK_NAME: "END_SCHED",       BLOCK_TYPE: "END",      BLOCK_GROUP: "SCHED", BLOCK_SEQ: "9",
+    BLOCK_NAME: "END_SCHED", BLOCK_TYPE: "END", BLOCK_GROUP: "SCHED", BLOCK_SEQ: "9",
     KEY: null, POSX: 300, POSY: 1250, PRE_BLOCK: ["UPDATE_SCHEDULE"], VALUES: [],
   },
 ];
@@ -367,52 +457,52 @@ const APF_LOT_SCHEDULER: RuleData[] = [
 const APF_NORMALIZER: RuleData[] = [
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_NORMALIZER",
-    BLOCK_NAME: "START_NORM",         BLOCK_TYPE: "START",   BLOCK_GROUP: "NORM", BLOCK_SEQ: "1",
+    BLOCK_NAME: "START_NORM", BLOCK_TYPE: "START", BLOCK_GROUP: "NORM", BLOCK_SEQ: "1",
     KEY: null, POSX: 300, POSY: 50, PRE_BLOCK: null, VALUES: [],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_NORMALIZER",
-    BLOCK_NAME: "READ_RAW_DATA",      BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "NORM", BLOCK_SEQ: "2",
+    BLOCK_NAME: "READ_RAW_DATA", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "NORM", BLOCK_SEQ: "2",
     KEY: "SOURCE_PATH", POSX: 300, POSY: 200, PRE_BLOCK: ["START_NORM"],
     VALUES: [
-      { COLUMN1: "RAW_DATA",    COLUMN2: "SOURCE_PATH", VALUE: 'ReadAPFRawData(SOURCE_PATH)' },
-      { COLUMN1: "FILE_STATUS", COLUMN2: "FILE_SIZE",   VALUE: 'IF FILE_SIZE = 0 THEN "EMPTY" ELSE "OK"' },
+      { COLUMN1: "RAW_DATA", COLUMN2: "SOURCE_PATH", VALUE: 'ReadAPFRawData(SOURCE_PATH)' },
+      { COLUMN1: "FILE_STATUS", COLUMN2: "FILE_SIZE", VALUE: 'IF FILE_SIZE = 0 THEN "EMPTY" ELSE "OK"' },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_NORMALIZER",
-    BLOCK_NAME: "NORM_LOT_INFO",      BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "NORM", BLOCK_SEQ: "3",
+    BLOCK_NAME: "NORM_LOT_INFO", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "NORM", BLOCK_SEQ: "3",
     KEY: null, POSX: 130, POSY: 390, PRE_BLOCK: ["READ_RAW_DATA"],
     VALUES: [
-      { COLUMN1: "LOT_ID",    COLUMN2: null, VALUE: 'NormalizeLotId(LOT_ID)' },
-      { COLUMN1: "PHASE",     COLUMN2: null, VALUE: 'NormalizePhase(PHASE)' },
+      { COLUMN1: "LOT_ID", COLUMN2: null, VALUE: 'NormalizeLotId(LOT_ID)' },
+      { COLUMN1: "PHASE", COLUMN2: null, VALUE: 'NormalizePhase(PHASE)' },
       { COLUMN1: "NORM_FLAG", COLUMN2: null, VALUE: '"Y"' },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_NORMALIZER",
-    BLOCK_NAME: "NORM_RECIPE_INFO",   BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "NORM", BLOCK_SEQ: "4",
+    BLOCK_NAME: "NORM_RECIPE_INFO", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "NORM", BLOCK_SEQ: "4",
     KEY: null, POSX: 470, POSY: 390, PRE_BLOCK: ["READ_RAW_DATA"],
     VALUES: [
-      { COLUMN1: "RECIPE_NAME", COLUMN2: null,          VALUE: 'NormalizeRecipeName(RECIPE_NAME)' },
-      { COLUMN1: "RECIPE_VER",  COLUMN2: null,          VALUE: 'MapRecipeVersion(RECIPE_VER)' },
+      { COLUMN1: "RECIPE_NAME", COLUMN2: null, VALUE: 'NormalizeRecipeName(RECIPE_NAME)' },
+      { COLUMN1: "RECIPE_VER", COLUMN2: null, VALUE: 'MapRecipeVersion(RECIPE_VER)' },
       { COLUMN1: "RECIPE_NAME", COLUMN2: "RECIPE_NAME", VALUE: 'IF RECIPE_NAME = "" THEN "UNKNOWN" ELSE RECIPE_NAME' },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_NORMALIZER",
-    BLOCK_NAME: "BUILD_APF_OUTPUT",   BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "NORM", BLOCK_SEQ: "5",
+    BLOCK_NAME: "BUILD_APF_OUTPUT", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "NORM", BLOCK_SEQ: "5",
     KEY: null, POSX: 300, POSY: 570,
     PRE_BLOCK: ["NORM_LOT_INFO", "NORM_RECIPE_INFO"], // [0]=主線 [1]=副線
     VALUES: [
-      { COLUMN1: "APF_PAYLOAD",  COLUMN2: "LOT_ID",       VALUE: 'BuildAPFOutput(LOT_ID, RECIPE_NAME, PHASE)' },
-      { COLUMN1: "BUILD_STATUS", COLUMN2: "APF_PAYLOAD",  VALUE: 'IF APF_PAYLOAD = "" THEN "FAIL" ELSE "OK"' },
+      { COLUMN1: "APF_PAYLOAD", COLUMN2: "LOT_ID", VALUE: 'BuildAPFOutput(LOT_ID, RECIPE_NAME, PHASE)' },
+      { COLUMN1: "BUILD_STATUS", COLUMN2: "APF_PAYLOAD", VALUE: 'IF APF_PAYLOAD = "" THEN "FAIL" ELSE "OK"' },
       { COLUMN1: "WRITE_RESULT", COLUMN2: "BUILD_STATUS", VALUE: 'IF BUILD_STATUS = "OK" THEN WriteOutput(OUTPUT_PATH) ELSE "SKIP"' },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_NORMALIZER",
-    BLOCK_NAME: "END_NORM",           BLOCK_TYPE: "END",     BLOCK_GROUP: "NORM", BLOCK_SEQ: "6",
+    BLOCK_NAME: "END_NORM", BLOCK_TYPE: "END", BLOCK_GROUP: "NORM", BLOCK_SEQ: "6",
     KEY: null, POSX: 300, POSY: 730, PRE_BLOCK: ["BUILD_APF_OUTPUT"], VALUES: [],
   },
 ];
@@ -422,49 +512,53 @@ const APF_NORMALIZER: RuleData[] = [
 const APF_FIELD_MAPPER: RuleData[] = [
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_FIELD_MAPPER",
-    BLOCK_NAME: "START_MAP",         BLOCK_TYPE: "START",    BLOCK_GROUP: "MAP", BLOCK_SEQ: "1",
+    BLOCK_NAME: "START_MAP", BLOCK_TYPE: "START", BLOCK_GROUP: "MAP", BLOCK_SEQ: "1",
     KEY: null, POSX: 300, POSY: 50, PRE_BLOCK: null, VALUES: [],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_FIELD_MAPPER",
-    BLOCK_NAME: "MAP_EQUIP_CODE",    BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "MAP", BLOCK_SEQ: "2",
+    BLOCK_NAME: "MAP_EQUIP_CODE", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "MAP", BLOCK_SEQ: "2",
     KEY: "EQUIP_ID", POSX: 300, POSY: 200, PRE_BLOCK: ["START_MAP"],
     VALUES: [
-      { COLUMN1: "EQUIP_CODE", COLUMN2: "EQUIP_TYPE",
-        VALUE: 'IF EQUIP_TYPE = "ETC" THEN MapETCCode(EQUIP_ID)\nELSE IF EQUIP_TYPE = "CVD" THEN MapCVDCode(EQUIP_ID)\nELSE MapDefaultCode(EQUIP_ID)' },
+      {
+        COLUMN1: "EQUIP_CODE", COLUMN2: "EQUIP_TYPE",
+        VALUE: 'IF EQUIP_TYPE = "ETC" THEN MapETCCode(EQUIP_ID)\nELSE IF EQUIP_TYPE = "CVD" THEN MapCVDCode(EQUIP_ID)\nELSE MapDefaultCode(EQUIP_ID)'
+      },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_FIELD_MAPPER",
-    BLOCK_NAME: "MAP_STEP_CODE",     BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "MAP", BLOCK_SEQ: "3",
+    BLOCK_NAME: "MAP_STEP_CODE", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "MAP", BLOCK_SEQ: "3",
     KEY: "STEP_ID", POSX: 300, POSY: 370, PRE_BLOCK: ["MAP_EQUIP_CODE"],
     VALUES: [
-      { COLUMN1: "STEP_CODE",     COLUMN2: "STEP_ID",    VALUE: 'MapStepCode(STEP_ID, PHASE)' },
-      { COLUMN1: "MAPPING_VALID", COLUMN2: "STEP_CODE",  VALUE: 'ValidateStepMapping(STEP_CODE, EQUIP_CODE)' },
+      { COLUMN1: "STEP_CODE", COLUMN2: "STEP_ID", VALUE: 'MapStepCode(STEP_ID, PHASE)' },
+      { COLUMN1: "MAPPING_VALID", COLUMN2: "STEP_CODE", VALUE: 'ValidateStepMapping(STEP_CODE, EQUIP_CODE)' },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_FIELD_MAPPER",
-    BLOCK_NAME: "VALIDATE_MAPPING",  BLOCK_TYPE: "DECISION", BLOCK_GROUP: "MAP", BLOCK_SEQ: "4",
+    BLOCK_NAME: "VALIDATE_MAPPING", BLOCK_TYPE: "DECISION", BLOCK_GROUP: "MAP", BLOCK_SEQ: "4",
     KEY: null, POSX: 300, POSY: 530, PRE_BLOCK: ["MAP_STEP_CODE"],
     VALUES: [
-      { COLUMN1: "MAPPING_STATUS", COLUMN2: "EQUIP_CODE",
-        VALUE: 'IF EQUIP_CODE = "" OR STEP_CODE = "" THEN "MAPPING_FAIL"\nELSE IF CheckMappingConsistency(EQUIP_CODE, STEP_CODE) = "FAIL" THEN "INCONSISTENT"\nELSE "OK"' },
+      {
+        COLUMN1: "MAPPING_STATUS", COLUMN2: "EQUIP_CODE",
+        VALUE: 'IF EQUIP_CODE = "" OR STEP_CODE = "" THEN "MAPPING_FAIL"\nELSE IF CheckMappingConsistency(EQUIP_CODE, STEP_CODE) = "FAIL" THEN "INCONSISTENT"\nELSE "OK"'
+      },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_FIELD_MAPPER",
-    BLOCK_NAME: "EXPORT_MAPPING",    BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "MAP", BLOCK_SEQ: "5",
+    BLOCK_NAME: "EXPORT_MAPPING", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "MAP", BLOCK_SEQ: "5",
     KEY: null, POSX: 300, POSY: 700, PRE_BLOCK: ["VALIDATE_MAPPING"],
     VALUES: [
-      { COLUMN1: "EXPORT_EQUIP",  COLUMN2: "EQUIP_CODE",    VALUE: 'WriteAPFField("EQUIP", EQUIP_CODE)' },
-      { COLUMN1: "EXPORT_STEP",   COLUMN2: "STEP_CODE",     VALUE: 'WriteAPFField("STEP", STEP_CODE)' },
+      { COLUMN1: "EXPORT_EQUIP", COLUMN2: "EQUIP_CODE", VALUE: 'WriteAPFField("EQUIP", EQUIP_CODE)' },
+      { COLUMN1: "EXPORT_STEP", COLUMN2: "STEP_CODE", VALUE: 'WriteAPFField("STEP", STEP_CODE)' },
       { COLUMN1: "EXPORT_STATUS", COLUMN2: "OUTPUT_FORMAT", VALUE: 'ExportMapping(EQUIP_CODE, STEP_CODE, OUTPUT_FORMAT)' },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_FIELD_MAPPER",
-    BLOCK_NAME: "END_MAP",           BLOCK_TYPE: "END",      BLOCK_GROUP: "MAP", BLOCK_SEQ: "6",
+    BLOCK_NAME: "END_MAP", BLOCK_TYPE: "END", BLOCK_GROUP: "MAP", BLOCK_SEQ: "6",
     KEY: null, POSX: 300, POSY: 860, PRE_BLOCK: ["EXPORT_MAPPING"], VALUES: [],
   },
 ];
@@ -479,79 +573,95 @@ const APF_FIELD_MAPPER: RuleData[] = [
 const APF_RECIPE_BUILDER: RuleData[] = [
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_RECIPE_BUILDER",
-    BLOCK_NAME: "START_BUILD",        BLOCK_TYPE: "START",    BLOCK_GROUP: "BUILD", BLOCK_SEQ: "1",
+    BLOCK_NAME: "START_BUILD", BLOCK_TYPE: "START", BLOCK_GROUP: "BUILD", BLOCK_SEQ: "1",
     KEY: null, POSX: 300, POSY: 50, PRE_BLOCK: null, VALUES: [],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_RECIPE_BUILDER",
-    BLOCK_NAME: "LOAD_BASE_RECIPE",   BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "BUILD", BLOCK_SEQ: "2",
+    BLOCK_NAME: "LOAD_BASE_RECIPE", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "BUILD", BLOCK_SEQ: "2",
     KEY: "RECIPE_NAME", POSX: 300, POSY: 210, PRE_BLOCK: ["START_BUILD"],
     VALUES: [
-      { COLUMN1: "$BaseParam",  COLUMN2: "EQUIP_CODE",  VALUE: 'LoadParamSet(EQUIP_CODE)' },
-      { COLUMN1: "$SchemaVer",  COLUMN2: "RECIPE_NAME", VALUE: 'GetSchema(RECIPE_NAME)' },
+      { COLUMN1: "$BaseParam", COLUMN2: "EQUIP_CODE", VALUE: 'LoadParamSet(EQUIP_CODE)' },
+      { COLUMN1: "$SchemaVer", COLUMN2: "RECIPE_NAME", VALUE: 'GetSchema(RECIPE_NAME)' },
       { COLUMN1: "BASE_RECIPE", COLUMN2: "RECIPE_NAME", VALUE: 'LoadBaseRecipe(RECIPE_NAME, $SchemaVer)' },
-      { COLUMN1: "RECIPE_VER",  COLUMN2: "EQUIP_CODE",  VALUE: 'GetRecipeVersion(RECIPE_NAME, EQUIP_CODE)' },
-      { COLUMN1: "EQUIP_PARAM", COLUMN2: "$BaseParam",  VALUE: 'NormalizeParam($BaseParam)' },
-      { COLUMN1: "LOT_GRADE",   COLUMN2: "LOT_ID",      VALUE: 'GetLotGrade(LOT_ID)' },
+      { COLUMN1: "RECIPE_VER", COLUMN2: "EQUIP_CODE", VALUE: 'GetRecipeVersion(RECIPE_NAME, EQUIP_CODE)' },
+      { COLUMN1: "EQUIP_PARAM", COLUMN2: "$BaseParam", VALUE: 'NormalizeParam($BaseParam)' },
+      { COLUMN1: "LOT_GRADE", COLUMN2: "LOT_ID", VALUE: 'GetLotGrade(LOT_ID)' },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_RECIPE_BUILDER",
-    BLOCK_NAME: "PATCH_LOT_SPEC",     BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "BUILD", BLOCK_SEQ: "3",
+    BLOCK_NAME: "PATCH_LOT_SPEC", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "BUILD", BLOCK_SEQ: "3",
     KEY: null, POSX: 110, POSY: 400, PRE_BLOCK: ["LOAD_BASE_RECIPE"],
     VALUES: [
-      { COLUMN1: "LOT_SPEC_OVERRIDE", COLUMN2: "LOT_GRADE",
-        VALUE: 'IF LOT_GRADE = "A" THEN BuildAGradeSpec(BASE_RECIPE, RECIPE_VER) ELSE BuildStdSpec(BASE_RECIPE)' },
-      { COLUMN1: "SPEC_LOG",          COLUMN2: "LOT_GRADE",
-        VALUE: 'IF LOT_GRADE = "A" THEN LogSpec("HIGH_GRADE_SPEC", LOT_SPEC_OVERRIDE) ELSE "SKIP"' },
+      {
+        COLUMN1: "LOT_SPEC_OVERRIDE", COLUMN2: "LOT_GRADE",
+        VALUE: 'IF LOT_GRADE = "A" THEN BuildAGradeSpec(BASE_RECIPE, RECIPE_VER) ELSE BuildStdSpec(BASE_RECIPE)'
+      },
+      {
+        COLUMN1: "SPEC_LOG", COLUMN2: "LOT_GRADE",
+        VALUE: 'IF LOT_GRADE = "A" THEN LogSpec("HIGH_GRADE_SPEC", LOT_SPEC_OVERRIDE) ELSE "SKIP"'
+      },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_RECIPE_BUILDER",
-    BLOCK_NAME: "PATCH_EQUIP_SPEC",   BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "BUILD", BLOCK_SEQ: "4",
+    BLOCK_NAME: "PATCH_EQUIP_SPEC", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "BUILD", BLOCK_SEQ: "4",
     KEY: null, POSX: 490, POSY: 400, PRE_BLOCK: ["LOAD_BASE_RECIPE"],
     VALUES: [
-      { COLUMN1: "EQUIP_SPEC_OVERRIDE", COLUMN2: "EQUIP_PARAM",
-        VALUE: 'BuildEquipSpec(BASE_RECIPE, EQUIP_PARAM, RECIPE_VER)' },
-      { COLUMN1: "EQUIP_SPEC_OVERRIDE", COLUMN2: null,
-        VALUE: 'IF EQUIP_SPEC_OVERRIDE = "" THEN BASE_RECIPE ELSE EQUIP_SPEC_OVERRIDE' },
+      {
+        COLUMN1: "EQUIP_SPEC_OVERRIDE", COLUMN2: "EQUIP_PARAM",
+        VALUE: 'BuildEquipSpec(BASE_RECIPE, EQUIP_PARAM, RECIPE_VER)'
+      },
+      {
+        COLUMN1: "EQUIP_SPEC_OVERRIDE", COLUMN2: null,
+        VALUE: 'IF EQUIP_SPEC_OVERRIDE = "" THEN BASE_RECIPE ELSE EQUIP_SPEC_OVERRIDE'
+      },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_RECIPE_BUILDER",
-    BLOCK_NAME: "ASSEMBLE_RECIPE",    BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "BUILD", BLOCK_SEQ: "5",
+    BLOCK_NAME: "ASSEMBLE_RECIPE", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "BUILD", BLOCK_SEQ: "5",
     KEY: null, POSX: 300, POSY: 600,
     PRE_BLOCK: ["PATCH_LOT_SPEC", "PATCH_EQUIP_SPEC"], // [0]=主線 [1]=副線
     VALUES: [
-      { COLUMN1: "FINAL_RECIPE",   COLUMN2: "BASE_RECIPE",
-        VALUE: 'MergeSpec(BASE_RECIPE, LOT_SPEC_OVERRIDE, EQUIP_SPEC_OVERRIDE)' },
-      { COLUMN1: "ASSEMBLE_STATUS", COLUMN2: "FINAL_RECIPE",
-        VALUE: 'IF FINAL_RECIPE = "" THEN "FAIL" ELSE "OK"' },
+      {
+        COLUMN1: "FINAL_RECIPE", COLUMN2: "BASE_RECIPE",
+        VALUE: 'MergeSpec(BASE_RECIPE, LOT_SPEC_OVERRIDE, EQUIP_SPEC_OVERRIDE)'
+      },
+      {
+        COLUMN1: "ASSEMBLE_STATUS", COLUMN2: "FINAL_RECIPE",
+        VALUE: 'IF FINAL_RECIPE = "" THEN "FAIL" ELSE "OK"'
+      },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_RECIPE_BUILDER",
-    BLOCK_NAME: "VALIDATE_RECIPE",    BLOCK_TYPE: "DECISION", BLOCK_GROUP: "BUILD", BLOCK_SEQ: "6",
+    BLOCK_NAME: "VALIDATE_RECIPE", BLOCK_TYPE: "DECISION", BLOCK_GROUP: "BUILD", BLOCK_SEQ: "6",
     KEY: "FINAL_RECIPE", POSX: 300, POSY: 780, PRE_BLOCK: ["ASSEMBLE_RECIPE"],
     VALUES: [
-      { COLUMN1: "RECIPE_STATUS", COLUMN2: "FINAL_RECIPE",
-        VALUE: 'IF FINAL_RECIPE = "" THEN "EMPTY"\nELSE IF ValidateRecipe(FINAL_RECIPE, EQUIP_CODE) = "FAIL" THEN "INVALID"\nELSE IF CheckParamRange(FINAL_RECIPE) = "OUT" THEN "OUT_OF_RANGE"\nELSE "OK"' },
+      {
+        COLUMN1: "RECIPE_STATUS", COLUMN2: "FINAL_RECIPE",
+        VALUE: 'IF FINAL_RECIPE = "" THEN "EMPTY"\nELSE IF ValidateRecipe(FINAL_RECIPE, EQUIP_CODE) = "FAIL" THEN "INVALID"\nELSE IF CheckParamRange(FINAL_RECIPE) = "OUT" THEN "OUT_OF_RANGE"\nELSE "OK"'
+      },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_RECIPE_BUILDER",
-    BLOCK_NAME: "COMMIT_RECIPE",      BLOCK_TYPE: "PROCESS",  BLOCK_GROUP: "BUILD", BLOCK_SEQ: "7",
+    BLOCK_NAME: "COMMIT_RECIPE", BLOCK_TYPE: "PROCESS", BLOCK_GROUP: "BUILD", BLOCK_SEQ: "7",
     KEY: null, POSX: 300, POSY: 960, PRE_BLOCK: ["VALIDATE_RECIPE"],
     VALUES: [
       { COLUMN1: "COMMIT_STATUS", COLUMN2: "FINAL_RECIPE", VALUE: 'CommitRecipe(FINAL_RECIPE, EQUIP_CODE)' },
-      { COLUMN1: "APF_RECIPE",    COLUMN2: null,            VALUE: 'WriteAPFField("RECIPE", FINAL_RECIPE)' },
-      { COLUMN1: "AUDIT_LOG",     COLUMN2: "LOT_GRADE",
-        VALUE: 'IF LOT_GRADE = "A" THEN AuditLog("A_GRADE_RECIPE", FINAL_RECIPE, LOT_ID) ELSE "SKIP"' },
+      { COLUMN1: "APF_RECIPE", COLUMN2: null, VALUE: 'WriteAPFField("RECIPE", FINAL_RECIPE)' },
+      {
+        COLUMN1: "AUDIT_LOG", COLUMN2: "LOT_GRADE",
+        VALUE: 'IF LOT_GRADE = "A" THEN AuditLog("A_GRADE_RECIPE", FINAL_RECIPE, LOT_ID) ELSE "SKIP"'
+      },
     ],
   },
   {
     PHASE: "APF_FORMAT", RULE_NAME: "APF_RECIPE_BUILDER",
-    BLOCK_NAME: "END_BUILD",          BLOCK_TYPE: "END",      BLOCK_GROUP: "BUILD", BLOCK_SEQ: "8",
+    BLOCK_NAME: "END_BUILD", BLOCK_TYPE: "END", BLOCK_GROUP: "BUILD", BLOCK_SEQ: "8",
     KEY: null, POSX: 300, POSY: 1120, PRE_BLOCK: ["COMMIT_RECIPE"], VALUES: [],
   },
 ];
@@ -569,13 +679,13 @@ export type VariableSource = {
 };
 
 export const MOCK_VAR_SOURCES: Record<string, VariableSource> = {
-  LOT_ID:        { variable: "LOT_ID",        varType: "INPUT",    description: "呼叫端傳入的批次 ID" },
-  EQUIP_CODE:    { variable: "EQUIP_CODE",    varType: "INPUT",    description: "呼叫端傳入的設備代碼" },
-  EQUIP_ID:      { variable: "EQUIP_ID",      varType: "INPUT",    description: "呼叫端傳入的設備 ID" },
-  RECIPE_NAME:   { variable: "RECIPE_NAME",   varType: "INPUT",    description: "呼叫端傳入的 Recipe 名稱" },
-  STEP_ID:       { variable: "STEP_ID",       varType: "INPUT",    description: "呼叫端傳入的製程步驟 ID" },
-  SOURCE_PATH:   { variable: "SOURCE_PATH",   varType: "INPUT",    description: "呼叫端傳入的 APF 原始資料路徑" },
-  OUTPUT_FORMAT: { variable: "OUTPUT_FORMAT", varType: "INPUT",    description: "呼叫端指定的輸出格式" },
+  LOT_ID: { variable: "LOT_ID", varType: "INPUT", description: "呼叫端傳入的批次 ID" },
+  EQUIP_CODE: { variable: "EQUIP_CODE", varType: "INPUT", description: "呼叫端傳入的設備代碼" },
+  EQUIP_ID: { variable: "EQUIP_ID", varType: "INPUT", description: "呼叫端傳入的設備 ID" },
+  RECIPE_NAME: { variable: "RECIPE_NAME", varType: "INPUT", description: "呼叫端傳入的 Recipe 名稱" },
+  STEP_ID: { variable: "STEP_ID", varType: "INPUT", description: "呼叫端傳入的製程步驟 ID" },
+  SOURCE_PATH: { variable: "SOURCE_PATH", varType: "INPUT", description: "呼叫端傳入的 APF 原始資料路徑" },
+  OUTPUT_FORMAT: { variable: "OUTPUT_FORMAT", varType: "INPUT", description: "呼叫端指定的輸出格式" },
   FILE_SIZE: {
     variable: "FILE_SIZE", varType: "COMPUTED",
     sourceTable: "FILE_SYSTEM", sourceColumn: "FILE_SIZE_BYTES",
@@ -640,10 +750,10 @@ export const MOCK_VAR_SOURCES: Record<string, VariableSource> = {
 
 // ── 統一查詢入口 ──────────────────────────────────────────────
 export const MOCK_RULE_DATA: Record<string, RuleData[]> = {
-  "APF_LOT_VALIDATOR":  APF_LOT_VALIDATOR,
-  "APF_RECIPE_CHECK":   APF_RECIPE_CHECK,
-  "APF_LOT_SCHEDULER":  APF_LOT_SCHEDULER,
-  "APF_NORMALIZER":     APF_NORMALIZER,
-  "APF_FIELD_MAPPER":   APF_FIELD_MAPPER,
+  "APF_LOT_VALIDATOR": APF_LOT_VALIDATOR,
+  "APF_RECIPE_CHECK": APF_RECIPE_CHECK,
+  "APF_LOT_SCHEDULER": APF_LOT_SCHEDULER,
+  "APF_NORMALIZER": APF_NORMALIZER,
+  "APF_FIELD_MAPPER": APF_FIELD_MAPPER,
   "APF_RECIPE_BUILDER": APF_RECIPE_BUILDER,
 };

@@ -6,12 +6,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Divider } from "antd";
 import type { RuleViewHandle, RuleData } from "./types";
-import { loadPhases, loadRuleNamesByPhase, loadRule } from "./api";
-import { convertDtosToData } from "./dataTransform";
-import {
-  DEV_MOCK_PHASE, DEV_MOCK_RULE_NAME, DEV_MOCK_RULES,
-  MOCK_PHASES, MOCK_RULES_BY_PHASE, MOCK_RULE_DATA,
-} from "./devMock";
+import { loadPhases, loadRuleNamesByPhase, loadRuleData } from "./api";
 import { RuleView } from "./RuleView";
 import { RuleDropdownSearch } from "./RuleDropdownSearch";
 import { RuleContentSearch, SearchNavigator } from "./RuleContentSearch";
@@ -22,11 +17,11 @@ type RightTab = "search" | "tracker";
 
 export default function RuleViewer() {
   // ── 兩階段 Rule 載入 ──────────────────────────────────────
-  const [phases, setPhases] = useState<string[]>([DEV_MOCK_PHASE, ...MOCK_PHASES]);
-  const [selectedPhase, setSelectedPhase] = useState<string | null>(DEV_MOCK_PHASE);
-  const [ruleNamesByPhase, setRuleNamesByPhase] = useState<string[]>([DEV_MOCK_RULE_NAME]);
-  const [selectedRule, setSelectedRule] = useState<string | null>(DEV_MOCK_RULE_NAME);
-  const [rules, setRules] = useState<RuleData[]>(DEV_MOCK_RULES);
+  const [phases, setPhases] = useState<string[]>([]);
+  const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
+  const [ruleNamesByPhase, setRuleNamesByPhase] = useState<string[]>([]);
+  const [selectedRule, setSelectedRule] = useState<string | null>(null);
+  const [rules, setRules] = useState<RuleData[]>([]);
 
   // ── Block 搜尋 ────────────────────────────────────────────
   const [matchedBlockList, setMatchedBlockList] = useState<MatchResult[] | null>(null);
@@ -77,9 +72,7 @@ export default function RuleViewer() {
 
   // Phase 清單
   useEffect(() => {
-    loadPhases()
-      .then((names) => setPhases([DEV_MOCK_PHASE, ...MOCK_PHASES, ...names]))
-      .catch(() => { });
+    loadPhases().then(setPhases);
   }, []);
 
   // Phase 變更
@@ -90,13 +83,8 @@ export default function RuleViewer() {
     setMatchIndex(0);
 
     if (!selectedPhase) { setRuleNamesByPhase([]); return; }
-    if (selectedPhase === DEV_MOCK_PHASE) { setRuleNamesByPhase([DEV_MOCK_RULE_NAME]); return; }
-    if (selectedPhase in MOCK_RULES_BY_PHASE) {
-      setRuleNamesByPhase(MOCK_RULES_BY_PHASE[selectedPhase as keyof typeof MOCK_RULES_BY_PHASE]);
-      return;
-    }
     loadRuleNamesByPhase(selectedPhase).then(setRuleNamesByPhase);
-  }, [selectedPhase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedPhase]);
 
   // Rule 變更
   useEffect(() => {
@@ -109,9 +97,7 @@ export default function RuleViewer() {
     setTrackerVarIds([]);
 
     if (!selectedRule) return;
-    if (selectedRule === DEV_MOCK_RULE_NAME) { setRules(DEV_MOCK_RULES); return; }
-    if (selectedRule in MOCK_RULE_DATA) { setRules(MOCK_RULE_DATA[selectedRule]); return; }
-    loadRule(selectedRule).then((data) => setRules(convertDtosToData(data)));
+    loadRuleData(selectedRule).then(setRules);
   }, [selectedRule]);
 
   function handlePrev() {

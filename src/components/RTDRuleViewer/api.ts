@@ -1,38 +1,79 @@
 // ============================================================
 // api.ts
-// 所有後端 API 呼叫集中在這裡
+// DEV  → 回傳 Mock 資料（不打 API）
+// STAGE / PROD → 打真實 API
 // ============================================================
 
 import axios from "axios";
-import type { RuleDTO } from "./types";
+import type { RuleDTO, RuleData } from "./types";
+import {
+  DEV_MOCK_PHASE, DEV_MOCK_RULE_NAME, DEV_MOCK_RULE_NAME_ICON,
+  DEV_MOCK_RULES, MOCK_PHASES, MOCK_RULES_BY_PHASE, MOCK_RULE_DATA,DEV_MOCK_RULE_ICON
+} from "./devMock";
+import { convertDtosToData } from "./dataTransform";
 
-const API_BASE = import.meta.env.VITE_API_BASE;
-const CID = "ruleviewer-frontend";
+// ── 環境判斷 ────────────────────────────────────────────────
+
+const APP_ENV = import.meta.env.VITE_APP_ENV as "DEV" | "STAGE" | "PROD";
+const IS_DEV = APP_ENV === "DEV";
+
+// ── 真實 API Client ──────────────────────────────────────────
 
 const client = axios.create({
-  baseURL: API_BASE,
-  headers: { CID },
+  baseURL: import.meta.env.VITE_API_BASE,
+  headers: { CID: "ruleviewer-frontend" },
 });
 
-/** 取得所有 Phase 清單 */
-export async function loadPhases(): Promise<string[]> {
+// ── Mock 實作 ────────────────────────────────────────────────
+
+const MOCK_PHASE_RULES: Record<string, string[]> = {
+  [DEV_MOCK_PHASE]: [DEV_MOCK_RULE_NAME, DEV_MOCK_RULE_NAME_ICON],
+  ...(MOCK_RULES_BY_PHASE as Record<string, string[]>),
+};
+
+const MOCK_RULE_LOOKUP: Record<string, RuleData[]> = {
+  [DEV_MOCK_RULE_NAME]:      DEV_MOCK_RULES,
+  [DEV_MOCK_RULE_NAME_ICON]: DEV_MOCK_RULE_ICON,
+  ...(MOCK_RULE_DATA as Record<string, RuleData[]>),
+};
+
+const MOCK_PHASES_ALL = [DEV_MOCK_PHASE, ...MOCK_PHASES];
+
+async function mockLoadPhases(): Promise<string[]> {
+  return MOCK_PHASES_ALL;
+}
+
+async function mockLoadRuleNamesByPhase(phase: string): Promise<string[]> {
+  return MOCK_PHASE_RULES[phase] ?? [];
+}
+
+async function mockLoadRuleData(ruleName: string): Promise<RuleData[]> {
+  return MOCK_RULE_LOOKUP[ruleName] ?? [];
+}
+
+// ── 真實 API 實作 ────────────────────────────────────────────
+
+async function apiLoadPhases(): Promise<string[]> {
   const res = await client.get<string[]>("/api/RuleViewer/phases");
   return res.data;
 }
 
-/** 取得指定 Phase 下的 Rule Name 清單 */
-export async function loadRuleNamesByPhase(phase: string): Promise<string[]> {
+async function apiLoadRuleNamesByPhase(phase: string): Promise<string[]> {
   const res = await client.get<string[]>(
     `/api/RuleViewer/names/${encodeURIComponent(phase)}`
   );
   return res.data;
 }
 
-/** 取得指定 Rule 的完整資料 */
-export async function loadRule(ruleName: string): Promise<RuleDTO[]> {
-  // encodeURIComponent 防止 ruleName 有空白、斜線、特殊字元直接炸掉
+async function apiLoadRuleData(ruleName: string): Promise<RuleData[]> {
   const res = await client.get<RuleDTO[]>(
     `/api/RuleViewer/${encodeURIComponent(ruleName)}`
   );
-  return res.data;
+  return convertDtosToData(res.data);
 }
+
+// ── 統一對外介面 ─────────────────────────────────────────────
+
+export const loadPhases           = IS_DEV ? mockLoadPhases           : apiLoadPhases;
+export const loadRuleNamesByPhase = IS_DEV ? mockLoadRuleNamesByPhase : apiLoadRuleNamesByPhase;
+export const loadRuleData         = IS_DEV ? mockLoadRuleData         : apiLoadRuleData;

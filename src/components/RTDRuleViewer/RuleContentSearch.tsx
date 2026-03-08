@@ -21,6 +21,7 @@ type RuleContentSearchProps = {
 
 // ── 工具函式 ──────────────────────────────────────────────────
 
+// 判斷 RuleData 是否符合搜尋關鍵字
 function matchRule(rule: RuleData, kw: string): boolean {
   if (rule.BLOCK_NAME.toLowerCase().includes(kw)) return true;
   if (rule.KEY && rule.KEY.toLowerCase().includes(kw)) return true;
@@ -60,10 +61,15 @@ function topoSort(rules: RuleData[]): string[] {
   const children = new Map<string, string[]>();
   const inDegree = new Map<string, number>();
 
+  // 初始化圖結構
+  // 每個 BLOCK_NAME 都是圖中的一個節點，PRE_BLOCK 定義了有向邊（依賴關係）
+  // 節點的入度（依賴數）用於拓撲排序，children 用於快速找到下一層節點
   for (const r of rules) {
     children.set(r.BLOCK_NAME, []);
     inDegree.set(r.BLOCK_NAME, 0);
   }
+
+  // 建立依賴關係（邊：pre -> BLOCK_NAME）
   for (const r of rules) {
     for (const pre of r.PRE_BLOCK ?? []) {
       if (nameSet.has(pre)) {
@@ -73,12 +79,22 @@ function topoSort(rules: RuleData[]): string[] {
     }
   }
 
+  // 拓撲排序（同層以 BLOCK_SEQ 排序）
   const bySeq = (a: string, b: string) => (seqOf.get(a) ?? 0) - (seqOf.get(b) ?? 0);
+
+  // 初始隊列：入度為 0 的節點，按 BLOCK_SEQ 排序
   const queue = [...inDegree.entries()]
     .filter(([, d]) => d === 0)
     .map(([n]) => n)
     .sort(bySeq);
+
+  // 拓撲排序過程
   const result: string[] = [];
+
+  // 過程:
+  // 1. 從隊列頭取出一個節點，加入結果
+  // 2. 對其所有子節點，入度減 1；如果入度變為 0，則加入隊列（同層按 BLOCK_SEQ 排序）
+  // 3. 重複直到隊列為空
 
   while (queue.length > 0) {
     const curr = queue.shift()!;
@@ -97,7 +113,6 @@ function topoSort(rules: RuleData[]): string[] {
 }
 
 // ── Components ────────────────────────────────────────────────
-
 export function RuleContentSearch({ rules, onMatchChange }: RuleContentSearchProps) {
   const [keyword, setKeyword] = useState("");
 
@@ -126,7 +141,7 @@ export function RuleContentSearch({ rules, onMatchChange }: RuleContentSearchPro
 
   return (
     <Input.Search
-      placeholder="Search blocks, keys, columns, values…"
+      placeholder="Search any values…"
       style={{ width: "100%" }}
       value={keyword}
       enterButton="Search"

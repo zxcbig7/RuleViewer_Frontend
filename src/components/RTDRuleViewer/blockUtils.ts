@@ -21,7 +21,7 @@ export function buildBlocks(data: RuleData[]): Block[] {
   }));
 }
 
-// ── 圖示版本切換 ─────────────────────────────────────────────
+// ── Icon 新舊版本切換 ─────────────────────────────────────────────
 const ICON_DIR_BASE = "/RTDIcons";
 const ICON_DIR_OLD = ICON_DIR_BASE + "/RTDIconsOld";
 const ICON_DIR_NEW = ICON_DIR_BASE + "/RTDIconsNew";
@@ -122,7 +122,7 @@ export function drawBlock(
 
   // Label 文字
   ctx.fillStyle = "rgba(0, 0, 0, 0.53)";
-  ctx.font = "8px sans-serif";
+  ctx.font = "11px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h + 4);

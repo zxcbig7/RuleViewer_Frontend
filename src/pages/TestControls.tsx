@@ -4,11 +4,8 @@
 // ============================================================
 
 import { useState } from "react";
-import { RuleDropdownSearch } from "../components/RTDRuleViewer/RuleDropdownSearch";
-import { RuleContentSearch, SearchNavigator } from "../components/RTDRuleViewer/RuleContentSearch";
-import { MOCK_PHASES, MOCK_RULES_BY_PHASE, MOCK_RULE_DATA, DEV_MOCK_PHASE, DEV_MOCK_RULE_NAME, DEV_MOCK_RULES } from "../components/RTDRuleViewer/devMock";
-import type { RuleData } from "../components/RTDRuleViewer/types";
-import type { MockPhase } from "../components/RTDRuleViewer/devMock";
+import { RuleDropdownSearch, RuleContentSearch, SearchNavigator, MOCK_PHASES, MOCK_RULES_BY_PHASE, MOCK_RULE_DATA, DEV_MOCK_PHASE, DEV_MOCK_RULE_NAME, DEV_MOCK_RULES } from "../components/RTDRuleViewer";
+import type { RuleData, MockPhase } from "../components/RTDRuleViewer";
 
 const ALL_PHASES = [DEV_MOCK_PHASE, ...MOCK_PHASES];
 
