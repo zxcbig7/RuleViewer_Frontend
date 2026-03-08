@@ -27,6 +27,7 @@ type RuleViewProps = {
   selectedBlockId?: string | null;
   trackerLogIds?: Set<string>;
   trackerVarIds?: Set<string>;
+  useNewIcons?: boolean;
 };
 
 type InspectorState = {
@@ -36,7 +37,7 @@ type InspectorState = {
 };
 
 export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
-  function RuleView({ rules, matchedBlockIds, selectedBlockId, trackerLogIds, trackerVarIds }, ref) {
+  function RuleView({ rules, matchedBlockIds, selectedBlockId, trackerLogIds, trackerVarIds, useNewIcons = true }, ref) {
 
     // ── Canvas refs ────────────────────────────────────────
     const canvasStageRef = useRef<HTMLDivElement | null>(null);
@@ -125,7 +126,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
 
         if (showGridRef.current) drawGrid(ctx, view, sizeRef.current);
         drawArrows(ctx, blocks, arrows, view.scale);
-        drawBlocks(ctx, blocks, inspectedBlockIds, matchedBlockIds, selectedBlockId, trackerLogIds, trackerVarIds);
+        drawBlocks(ctx, blocks, inspectedBlockIds, matchedBlockIds, selectedBlockId, trackerLogIds, trackerVarIds, useNewIcons);
 
         // ── Tracker 連線（var 模式：log → var blocks） ─────
         if (trackerLogIds?.size && trackerVarIds?.size) {
@@ -208,7 +209,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
           if (mmCtx) drawMinimap(mmCtx, blocks, viewRef.current, mm, sizeRef.current);
         }
       },
-      [arrows, inspectedBlockIds, matchedBlockIds, selectedBlockId, trackerLogIds, trackerVarIds]
+      [arrows, inspectedBlockIds, matchedBlockIds, selectedBlockId, trackerLogIds, trackerVarIds, useNewIcons]
     );
 
     // ── 初始化 Canvas（只在 blocks 變更時重設畫布尺寸） ──

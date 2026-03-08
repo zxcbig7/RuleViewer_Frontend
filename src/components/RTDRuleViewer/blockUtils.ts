@@ -30,15 +30,17 @@ function getIconSrc(type: BlockType, useNewIcons: boolean = true): string {
   return `${useNewIcons ? ICON_DIR_NEW : ICON_DIR_OLD}/${type}.png`;
 }
 
-// ── 圖片快取 ─────────────────────────────────────────────────
-const BLOCK_IMAGE_CACHE: Partial<Record<BlockType, HTMLImageElement>> = {};
+// ── 圖片快取（新舊各一份） ───────────────────────────────────
+const BLOCK_IMAGE_CACHE_NEW: Partial<Record<BlockType, HTMLImageElement>> = {};
+const BLOCK_IMAGE_CACHE_OLD: Partial<Record<BlockType, HTMLImageElement>> = {};
 
-export function getBlockImage(type: BlockType): HTMLImageElement {
-  let img = BLOCK_IMAGE_CACHE[type];
+export function getBlockImage(type: BlockType, useNewIcons: boolean = true): HTMLImageElement {
+  const cache = useNewIcons ? BLOCK_IMAGE_CACHE_NEW : BLOCK_IMAGE_CACHE_OLD;
+  let img = cache[type];
   if (!img) {
     img = new Image();
-    img.src = getIconSrc(type);
-    BLOCK_IMAGE_CACHE[type] = img;
+    img.src = getIconSrc(type, useNewIcons);
+    cache[type] = img;
   }
   return img;
 }
@@ -79,7 +81,8 @@ export function drawBlock(
   highlighted: boolean,
   isMatched: boolean,
   isSelected: boolean,
-  trackerRole?: "log" | "var"
+  trackerRole?: "log" | "var",
+  useNewIcons: boolean = true
 ) {
   ctx.save();
 
@@ -92,7 +95,7 @@ export function drawBlock(
   ctx.fillRect(b.x, b.y, b.w, b.h);
 
   // 圖片
-  const img = getBlockImage(b.type);
+  const img = getBlockImage(b.type, useNewIcons);
   if (img.complete && img.naturalWidth > 0) {
     ctx.drawImage(img, b.x, b.y, b.w, b.h);
   }
@@ -150,7 +153,8 @@ export function drawBlocks(
   matchedIds: Set<string> | null,
   selectedId?: string | null,
   trackerLogIds?: Set<string>,
-  trackerVarIds?: Set<string>
+  trackerVarIds?: Set<string>,
+  useNewIcons: boolean = true
 ) {
   blocks.forEach((b) =>
     drawBlock(
@@ -159,7 +163,8 @@ export function drawBlocks(
       inspectedIds.has(b.id),
       matchedIds ? matchedIds.has(b.id) : true,
       !!selectedId && b.id === selectedId,
-      trackerLogIds?.has(b.id) ? "log" : trackerVarIds?.has(b.id) ? "var" : undefined
+      trackerLogIds?.has(b.id) ? "log" : trackerVarIds?.has(b.id) ? "var" : undefined,
+      useNewIcons
     )
   );
 }

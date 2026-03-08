@@ -43,6 +43,9 @@ export default function RuleViewer() {
     return new Set(matchedBlockList.map((m) => m.id));
   }, [matchedBlockList]);
 
+  // ── Icon 版本切換 ─────────────────────────────────────────
+  const [useNewIcons, setUseNewIcons] = useState(true);
+
   // ── 右側面板寬度 / 收合 / 分頁 ───────────────────────────
   const [rightPanelWidth, setRightPanelWidth] = useState(300);
   const [rightCollapsed, setRightCollapsed] = useState(false);
@@ -146,6 +149,16 @@ export default function RuleViewer() {
           onPhaseChange={setSelectedPhase}
           onRuleSelect={setSelectedRule}
         />
+        <div className="ml-auto shrink-0 flex items-center text-xs rounded border border-white/15 bg-white/5 p-0.5 gap-0.5">
+          <button
+            onClick={() => setUseNewIcons(true)}
+            className={`px-3 py-1 rounded cursor-pointer transition-colors ${useNewIcons ? "bg-white/20 text-white font-semibold" : "text-slate-500 hover:text-slate-300"}`}
+          >New Icon</button>
+          <button
+            onClick={() => setUseNewIcons(false)}
+            className={`px-3 py-1 rounded cursor-pointer transition-colors ${!useNewIcons ? "bg-white/20 text-white font-semibold" : "text-slate-500 hover:text-slate-300"}`}
+          >Old Icon</button>
+        </div>
       </div>
 
       {/* ── 主體：Canvas + 右側面板 ── */}
@@ -160,6 +173,7 @@ export default function RuleViewer() {
             selectedBlockId={selectedBlockId}
             trackerLogIds={trackerLogIds.length ? new Set(trackerLogIds) : undefined}
             trackerVarIds={trackerVarIds.length ? new Set(trackerVarIds) : undefined}
+            useNewIcons={useNewIcons}
           />
         </div>
 
