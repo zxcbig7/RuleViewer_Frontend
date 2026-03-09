@@ -34,20 +34,48 @@ type BlockInspectorProps = {
 // Type Accent Config  (Tailwind class strings)
 // ─────────────────────────────────────────────────────────────
 type TypeAccent = {
-  headerBg: string;     // Tailwind bg class
-  borderLeft: string;   // Tailwind border-l-color class
-  badgeClasses: string; // Tailwind badge classes
+  headerBg: string;
+  borderLeft: string;
+  badgeClasses: string;
 };
 
-const TYPE_ACCENT: Record<string, TypeAccent> = {
-  START:    { headerBg: "bg-green-50",  borderLeft: "border-l-green-600",  badgeClasses: "bg-green-100 text-green-700" },
-  END:      { headerBg: "bg-gray-50",   borderLeft: "border-l-gray-500",   badgeClasses: "bg-gray-100 text-gray-700" },
-  DECISION: { headerBg: "bg-amber-50",  borderLeft: "border-l-amber-600",  badgeClasses: "bg-amber-100 text-amber-800" },
-  PROCESS:  { headerBg: "bg-blue-50",   borderLeft: "border-l-blue-600",   badgeClasses: "bg-blue-100 text-blue-800" },
+type BlockCategory = "input" | "tableop" | "function" | "output" | "general";
+
+// 依照 RTDIconsNew 圖片背景色分類
+// 橘色: Input  綠色: TableOperation  藍色: Function  黃色: Output
+const TYPE_CATEGORY: Record<string, BlockCategory> = {
+  // Input (橘色) — Row 0
+  Data: "input", DataSource: "input", Import: "input", MacroImport: "input",
+  MacroParameter: "input", Repository: "input", SQL: "input", Tag: "input",
+  // TableOperation (綠色) — Row 1
+  Index: "tableop", Join: "tableop", MacroFunction: "tableop", Procedure: "tableop", Union: "tableop",
+  // Function (藍色) — Row 2-3
+  Batch: "function", Compress: "function", Cumulate: "function", Delta: "function",
+  Duration: "function", EventMaker: "function", Filter: "function", Function: "function",
+  HyperLink: "function", LoopBegin: "function", LoopEnd: "function", Percentage: "function",
+  Product: "function", Rule: "function", Select: "function", Snapshot: "function",
+  Sort: "function", TempMaker: "function",
+  // Output (黃色) — Row 4-5
+  Action: "output", Bar: "output", Barline: "output", BoxPlot: "output",
+  DispatchScreen: "output", Gantt: "output", Line: "output", MacroExport: "output",
+  Pie: "output", ResultTable: "output", StackBar: "output", StackBarLine: "output",
+  StackTemporal: "output", Table: "output", Temporal: "output", XY: "output", XYTable: "output",
+};
+
+const CATEGORY_ACCENT: Record<BlockCategory, TypeAccent> = {
+  input:   { headerBg: "bg-orange-50",  borderLeft: "border-l-orange-500", badgeClasses: "bg-orange-100 text-orange-700" },
+  tableop: { headerBg: "bg-green-50",   borderLeft: "border-l-green-500",  badgeClasses: "bg-green-100 text-green-700" },
+  function:{ headerBg: "bg-blue-50",    borderLeft: "border-l-blue-500",   badgeClasses: "bg-blue-100 text-blue-700" },
+  output:  { headerBg: "bg-yellow-50",  borderLeft: "border-l-yellow-500", badgeClasses: "bg-yellow-100 text-yellow-700" },
+  general: { headerBg: "bg-gray-50",    borderLeft: "border-l-gray-400",   badgeClasses: "bg-gray-100 text-gray-600" },
 };
 
 function getAccent(type: string): TypeAccent {
-  return TYPE_ACCENT[type] ?? TYPE_ACCENT["PROCESS"];
+  return CATEGORY_ACCENT[TYPE_CATEGORY[type] ?? "general"];
+}
+
+function getCategory(type: string): BlockCategory {
+  return TYPE_CATEGORY[type] ?? "general";
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -96,7 +124,7 @@ export function BlockInspector({
   // 拖曳 / resize mousemove + mouseup
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
-      const panel   = panelRef.current;
+      const panel = panelRef.current;
       const wrapper = wrapperRef.current;
       if (!panel || !wrapper) return;
 
@@ -105,10 +133,10 @@ export function BlockInspector({
         const dx = e.clientX - resizeRef.current.startX;
         const dy = e.clientY - resizeRef.current.startY;
         const wrapperRect = wrapper.getBoundingClientRect();
-        const panelRect   = panel.getBoundingClientRect();
-        const maxW = wrapperRect.width  - panelRect.left + wrapperRect.left;
-        const maxH = wrapperRect.height - panelRect.top  + wrapperRect.top;
-        panel.style.width  = Math.min(Math.max(240, resizeRef.current.startW + dx), maxW) + "px";
+        const panelRect = panel.getBoundingClientRect();
+        const maxW = wrapperRect.width - panelRect.left + wrapperRect.left;
+        const maxH = wrapperRect.height - panelRect.top + wrapperRect.top;
+        panel.style.width = Math.min(Math.max(240, resizeRef.current.startW + dx), maxW) + "px";
         panel.style.height = Math.min(Math.max(180, resizeRef.current.startH + dy), maxH) + "px";
         return;
       }
@@ -116,12 +144,12 @@ export function BlockInspector({
       // 只有在拖曳狀態才處理 mousemove，並且限制在 wrapper 範圍內
       if (!dragRef.current.dragging) return;
       const rect = wrapper.getBoundingClientRect();
-      const mx   = e.clientX - rect.left;
-      const my   = e.clientY - rect.top;
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
       let x = dragRef.current.originX + (mx - dragRef.current.startX);
       let y = dragRef.current.originY + (my - dragRef.current.startY);
       const panelRect = panel.getBoundingClientRect();
-      x = Math.max(0, Math.min(x, rect.width  - panelRect.width));
+      x = Math.max(0, Math.min(x, rect.width - panelRect.width));
       y = Math.max(0, Math.min(y, rect.height - panelRect.height));
       panel.style.transform = `translate(${x}px, ${y}px)`;
       onPositionChangeRef.current?.(x, y);
@@ -129,25 +157,25 @@ export function BlockInspector({
 
     // mouseup 停止拖曳/resize，並更新 origin 以利下一次拖曳
     function onMouseUp() {
-      const panel   = panelRef.current;
+      const panel = panelRef.current;
       const wrapper = wrapperRef.current;
       if (!panel || !wrapper) return;
       const rect = wrapper.getBoundingClientRect();
       if (resizeRef.current.resizing || dragRef.current.dragging) {
         resizeRef.current.resizing = false;
-        dragRef.current.dragging   = false;
+        dragRef.current.dragging = false;
         dragRef.current.originX = panel.getBoundingClientRect().left - rect.left;
-        dragRef.current.originY = panel.getBoundingClientRect().top  - rect.top;
+        dragRef.current.originY = panel.getBoundingClientRect().top - rect.top;
         inspectorDraggingRef.current = false;
       }
     }
 
     // 全局監聽 mousemove 和 mouseup，以支援在面板外拖曳/縮放
     window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup",   onMouseUp);
+    window.addEventListener("mouseup", onMouseUp);
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup",   onMouseUp);
+      window.removeEventListener("mouseup", onMouseUp);
     };
   }, []);
 
@@ -163,9 +191,9 @@ export function BlockInspector({
       style={{ zIndex }}
       onMouseDown={(e) => { e.stopPropagation(); onFocus?.(); }}
     >
-      {/* Header */}
+      {/* Header（拖曳區） */}
       <div
-        className={`flex items-center justify-between select-none px-3 py-2 shrink-0 cursor-move border-b border-gray-200 ${accent.headerBg}`}
+        className={`flex items-center gap-2 select-none px-3 py-2 shrink-0 cursor-move border-b border-gray-200 ${accent.headerBg}`}
         onMouseDown={(e) => {
           e.stopPropagation();
           onFocus?.();
@@ -178,13 +206,14 @@ export function BlockInspector({
           dragRef.current.startY = e.clientY - rect.top;
         }}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 ${accent.badgeClasses}`}>
-            {block.type}
-          </span>
-          <strong className="text-sm truncate">{r.BLOCK_NAME}</strong>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 ${accent.badgeClasses}`}>
+          {block.type}
+        </span>
+        <strong className="text-sm truncate min-w-0">{r.BLOCK_NAME}</strong>
+        <span className="text-gray-300 text-[10px] shrink-0">|</span>
+        <span className="text-[10px] text-gray-400 shrink-0">Seq: <span className="font-mono text-gray-600">{r.BLOCK_SEQ}</span></span>
+        <span className="text-[10px] text-gray-400 shrink-0">Group: <span className="font-mono text-gray-600">{r.BLOCK_GROUP}</span></span>
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
           <span className="text-[10px] text-gray-300 select-none">Esc</span>
           <button
             onClick={onClose}
@@ -246,46 +275,59 @@ function MetaRow({ label, value }: { label: string; value?: string | null }) {
 
 function PreBlockBadge({ name, isPrimary }: { name: string; isPrimary: boolean }) {
   return (
-    <span className={`text-[11px] px-2 py-0.5 rounded border font-mono ${
-      isPrimary
-        ? "border-gray-700 text-gray-700 bg-gray-50"
-        : "border-orange-600 text-orange-600 bg-orange-50"
-    }`}>
+    <span className={`text-[11px] px-2 py-0.5 rounded border font-mono ${isPrimary
+      ? "border-gray-700 text-gray-700 bg-gray-50"
+      : "border-orange-600 text-orange-600 bg-orange-50"
+      }`}>
       {isPrimary ? "●" : "○"} {name}
     </span>
   );
 }
 
-
-/** PROCESS 用：顯示單一賦值 */
-function AssignmentCard({ index, v }: { index: number; v: BlockValue }) {
+// ── 欄位標籤 + 值 ─────────────────────────────────────────────
+function ColField({ label, value, labelCls = "text-gray-400", valueCls = "text-gray-700" }: {
+  label: string; value: string;
+  labelCls?: string; valueCls?: string;
+}) {
   return (
-    <div className="rounded border border-gray-200 bg-gray-50 p-2.5">
-      {/* 賦值目標 */}
+    <span className="flex flex-col gap-0.5">
+      <span className={`text-[9px] font-medium ${labelCls}`}>{label}</span>
+      <span className={`font-mono font-semibold ${valueCls}`}>{value}</span>
+    </span>
+  );
+}
+
+// ── 共用 Value 卡片（ProcessBody / FunctionBody 都用） ────────
+type ValueCardTheme = { border: string; bg: string; indexCls: string; };
+const VALUE_CARD_THEMES: Record<"gray" | "blue", ValueCardTheme> = {
+  gray: { border: "border-gray-200", bg: "bg-gray-50",      indexCls: "text-gray-400" },
+  blue: { border: "border-blue-100", bg: "bg-blue-50/40",   indexCls: "text-blue-300" },
+};
+
+function ValueCard({ index, v, theme = "gray", col1Label, col2Label, showArrow = false }: {
+  index: number; v: BlockValue;
+  theme?: "gray" | "blue";
+  col1Label: string; col2Label: string;
+  showArrow?: boolean;
+}) {
+  const t = VALUE_CARD_THEMES[theme];
+  const isBlue = theme === "blue";
+  const labelCls = isBlue ? "text-blue-400" : "text-gray-400";
+  return (
+    <div className={`rounded border ${t.border} ${t.bg} p-2.5`}>
       <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-[10px] text-gray-400 font-medium w-4 text-right shrink-0">
-          {index + 1}
-        </span>
-        <span className="text-[10px] text-gray-400">←</span>
+        <span className={`text-[10px] ${t.indexCls} font-medium w-4 text-right shrink-0`}>{index + 1}</span>
+        {showArrow && <span className="text-[10px] text-gray-400">←</span>}
         <div className="flex gap-3 text-xs min-w-0">
-          {v.COLUMN1 && (
-            <span className="flex flex-col gap-0.5">
-              <span className="text-[9px] text-gray-400">Target</span>
-              <span className="font-mono text-blue-700 font-semibold">{v.COLUMN1}</span>
-            </span>
-          )}
-          {v.COLUMN2 && (
-            <span className="flex flex-col gap-0.5">
-              <span className="text-[9px] text-gray-400">Depends on</span>
-              <span className="font-mono text-gray-500">{v.COLUMN2}</span>
-            </span>
-          )}
+          {v.COLUMN1 && <ColField label={col1Label} value={v.COLUMN1} labelCls={labelCls} valueCls="text-blue-700" />}
+          {v.COLUMN2 && <ColField label={col2Label} value={v.COLUMN2} labelCls={labelCls} valueCls={isBlue ? "text-blue-500" : "text-gray-500"} />}
         </div>
       </div>
-      {/* 值表達式 */}
-      <pre className="font-mono text-xs leading-relaxed bg-white border border-gray-200 rounded px-2.5 py-1.5 m-0 whitespace-pre-wrap break-all ml-6">
-        {v.VALUE != null && <HighlightedValue code={v.VALUE} />}
-      </pre>
+      {v.VALUE != null && (
+        <pre className={`font-mono text-xs leading-relaxed bg-white border ${t.border} rounded px-2.5 py-1.5 m-0 whitespace-pre-wrap break-all ml-6`}>
+          <HighlightedValue code={v.VALUE} />
+        </pre>
+      )}
     </div>
   );
 }
@@ -296,9 +338,10 @@ function AssignmentCard({ index, v }: { index: number; v: BlockValue }) {
 type TokenType = "comment" | "string" | "keyword" | "variable" | "text";
 type Token = { type: TokenType; text: string };
 
-const HIGHLIGHT_RE =
-  /("(?:[^"\\]|\\.)*")|(\/\*[\s\S]*?\*\/)|(\/\/[^\n]*)|(\b(?:IF|ELSE|THEN|OR|AND)\b)|(\$[^\s"]+)|([^\s"]+)/g;
+// 簡單的語法高亮實作，針對賦值表達式中的關鍵字、變數、字串和註解進行著色
+const HIGHLIGHT_RE = /("(?:[^"\\]|\\.)*")|(\/\*[\s\S]*?\*\/)|(\/\/[^\n]*)|(\b(?:IF|ELSE|THEN|OR|AND)\b)|(\$[^\s"]+)|([^\s"]+)/g;
 
+// 將賦值表達式切分成不同類型的 token，以便在 HighlightedValue 中渲染不同顏色
 function tokenize(code: string): Token[] {
   const result: Token[] = [];
   let last = 0;
@@ -307,12 +350,12 @@ function tokenize(code: string): Token[] {
 
   while ((m = HIGHLIGHT_RE.exec(code)) !== null) {
     if (m.index > last) result.push({ type: "text", text: code.slice(last, m.index) });
-    if      (m[1]) result.push({ type: "string",   text: m[1] });
-    else if (m[2]) result.push({ type: "comment",  text: m[2] });
-    else if (m[3]) result.push({ type: "comment",  text: m[3] });
-    else if (m[4]) result.push({ type: "keyword",  text: m[4] });
+    if (m[1]) result.push({ type: "string", text: m[1] });
+    else if (m[2]) result.push({ type: "comment", text: m[2] });
+    else if (m[3]) result.push({ type: "comment", text: m[3] });
+    else if (m[4]) result.push({ type: "keyword", text: m[4] });
     else if (m[5]) result.push({ type: "variable", text: m[5] });
-    else           result.push({ type: "text",     text: m[6]! });
+    else result.push({ type: "text", text: m[6]! });
     last = HIGHLIGHT_RE.lastIndex;
   }
 
@@ -321,11 +364,11 @@ function tokenize(code: string): Token[] {
 }
 
 const TOKEN_CLASS: Record<TokenType, string> = {
-  comment:  "text-green-600",
-  string:   "text-amber-800",
-  keyword:  "text-blue-700",
+  comment: "text-green-600",
+  string: "text-amber-800",
+  keyword: "text-blue-700",
   variable: "text-amber-700",
-  text:     "",
+  text: "",
 };
 
 function HighlightedValue({ code }: { code: string }) {
@@ -346,23 +389,27 @@ function HighlightedValue({ code }: { code: string }) {
 // ─────────────────────────────────────────────────────────────
 // Body Factory
 // ─────────────────────────────────────────────────────────────
-function InspectorBody({ block: _block, r }: { block: Block; r: RuleData }) {
+function InspectorBody({ block, r }: { block: Block; r: RuleData }) {
+  const cat = getCategory(block.type);
+  if (cat === "function" || cat === "tableop") return <FunctionBody r={r} />;
   return <ProcessBody r={r} />;
 }
 
 
 // ─────────────────────────────────────────────────────────────
-// ProcessBody — 多筆賦值（每筆一件事）
+// BodyBase — Metadata + Pre-Blocks + Values（共用骨架）
 // ─────────────────────────────────────────────────────────────
-function ProcessBody({ r }: { r: RuleData }) {
+function BodyBase({ r, sectionLabel, theme = "gray", col1Label, col2Label, showArrow = false }: {
+  r: RuleData;
+  sectionLabel: string;
+  theme?: "gray" | "blue";
+  col1Label: string;
+  col2Label: string;
+  showArrow?: boolean;
+}) {
   return (
     <div className="p-3 flex flex-col gap-2">
-      <SectionTitle>Metadata</SectionTitle>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-        <MetaRow label="Group" value={r.BLOCK_GROUP} />
-        <MetaRow label="Seq"   value={r.BLOCK_SEQ} />
-        {r.KEY && <MetaRow label="Key" value={r.KEY} />}
-      </div>
+      {r.KEY && <MetaRow label="Key" value={r.KEY} />}
 
       {r.PRE_BLOCK && r.PRE_BLOCK.length > 0 && (
         <>
@@ -377,16 +424,24 @@ function ProcessBody({ r }: { r: RuleData }) {
 
       {r.VALUES.length > 0 && (
         <>
-          <SectionTitle>Assignments ({r.VALUES.length})</SectionTitle>
+          <SectionTitle>{sectionLabel} ({r.VALUES.length})</SectionTitle>
           <div className="flex flex-col gap-2">
             {r.VALUES.map((v, i) => (
-              <AssignmentCard key={i} index={i} v={v} />
+              <ValueCard key={i} index={i} v={v} theme={theme} col1Label={col1Label} col2Label={col2Label} showArrow={showArrow} />
             ))}
           </div>
         </>
       )}
     </div>
   );
+}
+
+function FunctionBody({ r }: { r: RuleData }) {
+  return <BodyBase r={r} sectionLabel="Operations" theme="blue" col1Label="Output" col2Label="Source" />;
+}
+
+function ProcessBody({ r }: { r: RuleData }) {
+  return <BodyBase r={r} sectionLabel="Assignments" theme="gray" col1Label="Target" col2Label="Depends on" showArrow />;
 }
 
 

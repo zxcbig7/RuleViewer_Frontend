@@ -14,6 +14,8 @@ import { convertDtosToData } from "./dataTransform";
 
 // ── 環境判斷 ────────────────────────────────────────────────
 
+// 透過 Vite 的環境變數來判斷目前運行環境（DEV / STAGE / PROD
+// 檔案: .env.development, .env.staging, .env.production 中定義 VITE_APP_ENV=DEV|STAGE|PROD
 const APP_ENV = import.meta.env.VITE_APP_ENV as "DEV" | "STAGE" | "PROD";
 const IS_DEV = APP_ENV === "DEV";
 

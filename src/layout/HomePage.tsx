@@ -5,6 +5,7 @@
 // 3. 在內容區域使用 Outlet 組件顯示子路由對應的內容。
 import React, { useMemo, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 import { LogoutOutlined } from "@ant-design/icons";
 
 // 圖片
@@ -57,6 +58,7 @@ const items: MenuItem[] = [
 const HomePage = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const location = useLocation();
 
   const {
@@ -137,7 +139,7 @@ const HomePage = () => {
           {/* 底部：登出（貼底） */}
           <div style={{ flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
             <button
-              onClick={() => navigate("/login", { replace: true })}
+              onClick={logout}
               title="登出"
               style={{
                 display: "flex",

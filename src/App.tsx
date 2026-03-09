@@ -1,11 +1,11 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./layout/HomePage";
 import { RuleViewer } from "./components/RTDRuleViewer";
-
+import { AuthProvider } from "./auth/AuthContext";
+import { ProtectedRoute } from "./auth/ProtectedRoute";
 
 import CanvasComponent from "./components/CanvasTest/BasicCanvas";
 import RuleViewerNew from "./components/CanvasTest/RuleViewerNew";
-import RuleViewerLayout from "./components/RuleViewer/Layout";
 
 import TestBlockInspector from "./pages/TestBlockInspector";
 import TestRuleView from "./pages/TestRuleView";
@@ -18,37 +18,43 @@ import ErrorPage from "./pages/defaultErrorPage";
 
 function App() {
   return (
-    <Routes>
-      {/* 獨立頁面：不含 sidebar 佈局 */}
-      <Route path="/login" element={<AuthPage />} />
+    <AuthProvider>
+      <Routes>
+        {/* 獨立頁面：不含 sidebar 佈局 */}
+        <Route path="/login" element={<AuthPage />} />
 
-      {/* HomePage 永遠存在 */}
-      <Route path="/" element={<HomePage />}>
+        {/* 受保護的主佈局 */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        >
+          {/* 預設進來導到 dashboard */}
+          <Route index element={<Navigate to="dashboard" replace />} />
 
-        {/* 預設進來導到 dashboard（可選） */}
-        <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<div>Dashboard</div>} />
 
-        {/* 這些才是右邊內容 */}
-        <Route path="dashboard" element={<div>Dashboard</div>} />
+          {/* Rule Viewer Pages */}
+          <Route path="ruleviewer" element={<RuleViewer />} />
 
-        {/* Rule Viewer Pages */}
-        <Route path="ruleviewer" element={<RuleViewer />} />
+          {/* Rule Viewer New Pages */}
+          <Route path="ruleviewer/main" element={<RuleViewerNew />} />
+          <Route path="ruleviewer/test1" element={<TestBlockInspector />} />
+          <Route path="ruleviewer/test2" element={<TestRuleView />} />
+          <Route path="ruleviewer/test3" element={<TestControls />} />
+          <Route path="ruleviewer/legacy2" element={<CanvasComponent />} />
 
-        {/* Rule Viewer New Pages */}
-        <Route path="ruleviewer/main" element={<RuleViewerNew />} />
-        <Route path="ruleviewer/test1" element={<TestBlockInspector />} />
-        <Route path="ruleviewer/test2" element={<TestRuleView />} />
-        <Route path="ruleviewer/test3" element={<TestControls />} />
-        <Route path="ruleviewer/legacy1" element={<RuleViewerLayout />} />
-        <Route path="ruleviewer/legacy2" element={<CanvasComponent />} />
+          {/* Sudoku Pages */}
+          <Route path="sudoku" element={<SudokuSolver />} />
 
-        {/* Sudoku Pages */}
-        <Route path="sudoku" element={<SudokuSolver />} />
-
-        {/* Error Pages */}
-        <Route path="*" element={<ErrorPage statusCode={404} />} />
-      </Route>
-    </Routes>
+          {/* Error Pages */}
+          <Route path="*" element={<ErrorPage statusCode={404} />} />
+        </Route>
+      </Routes>
+    </AuthProvider>
   );
 }
 
