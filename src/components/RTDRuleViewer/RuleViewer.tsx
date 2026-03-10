@@ -52,11 +52,13 @@ export default function RuleViewer() {
   const [rightTab, setRightTab] = useState<RightTab>("search");
   const dividerDragRef = useRef({ dragging: false, startX: 0, startW: 300 });
 
+  // 右側面板拖曳調整寬度
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
       if (!dividerDragRef.current.dragging) return;
       const dx = dividerDragRef.current.startX - e.clientX;
-      const newW = Math.max(220, Math.min(600, dividerDragRef.current.startW + dx));
+      // 限制最小寬度 220，最大寬度 1000
+      const newW = Math.max(220, Math.min(1000, dividerDragRef.current.startW + dx));
       setRightPanelWidth(newW);
     }
     function onMouseUp() {

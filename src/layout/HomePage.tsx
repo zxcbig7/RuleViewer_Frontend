@@ -47,6 +47,7 @@ const items: MenuItem[] = [
   getItem("Rule Viewer", "/ruleviewer", <DesktopOutlined />),
 
   getItem("Sudoku Solver", "/sudoku", <ImCalculator />),
+  getItem("Tailwind Cheatsheet", "/tailwind", <ImCalculator />),
 
   getItem("RTD Rule Viewer", "", <DesktopOutlined />, [
     getItem("Block Inspector", "/ruleviewer/test1", <DesktopOutlined />),

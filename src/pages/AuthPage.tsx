@@ -37,7 +37,7 @@ export default function AuthPage() {
       {/* Card */}
       <div className="rounded-2xl border border-white/8 bg-[#161b2e] p-8 shadow-2xl flex flex-col gap-4">
         <p className="text-sm text-[#8b9ab8] text-center">
-          請透過公司帳號 (SSO) 登入
+          透過公司帳號 (tSSO) 登入
         </p>
         <button
           onClick={login}
