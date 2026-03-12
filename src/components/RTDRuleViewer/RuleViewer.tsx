@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Divider } from "antd";
 import type { RuleViewHandle, RuleData } from "./types";
+import { cn } from "../../utls/clsx";
 import { loadPhases, loadRuleNamesByPhase, loadRuleData } from "./api";
 import { RuleView } from "./RuleView";
 import { RuleDropdownSearch } from "./RuleDropdownSearch";
@@ -154,11 +155,11 @@ export default function RuleViewer() {
         <div className="ml-auto shrink-0 flex items-center text-xs rounded border border-white/15 bg-white/5 p-0.5 gap-0.5">
           <button
             onClick={() => setUseNewIcons(true)}
-            className={`px-3 py-1 rounded cursor-pointer transition-colors ${useNewIcons ? "bg-white/20 text-white font-semibold" : "text-slate-500 hover:text-slate-300"}`}
+            className={cn("px-3 py-1 rounded cursor-pointer transition-colors", useNewIcons ? "bg-white/20 text-white font-semibold" : "text-slate-500 hover:text-slate-300")}
           >New Icon</button>
           <button
             onClick={() => setUseNewIcons(false)}
-            className={`px-3 py-1 rounded cursor-pointer transition-colors ${!useNewIcons ? "bg-white/20 text-white font-semibold" : "text-slate-500 hover:text-slate-300"}`}
+            className={cn("px-3 py-1 rounded cursor-pointer transition-colors", !useNewIcons ? "bg-white/20 text-white font-semibold" : "text-slate-500 hover:text-slate-300")}
           >Old Icon</button>
         </div>
       </div>
@@ -181,7 +182,7 @@ export default function RuleViewer() {
 
         {/* 拖曳分隔線（收合時不可見） */}
         <div
-          className={`w-2 shrink-0 mx-1 flex items-center justify-center cursor-col-resize select-none group self-stretch ${rightCollapsed ? "invisible" : ""}`}
+          className={cn("w-2 shrink-0 mx-1 flex items-center justify-center cursor-col-resize select-none group self-stretch", rightCollapsed && "invisible")}
           onMouseDown={(e) => {
             if (rightCollapsed) return;
             e.preventDefault();
@@ -197,7 +198,7 @@ export default function RuleViewer() {
 
         {/* 右側面板（始終掛載，收合時僅顯示展開按鈕） */}
         <div
-          className={`shrink-0 rounded-xl bg-slate-900 border border-black/12 text-white flex flex-col min-h-0 overflow-hidden ${rightCollapsed ? "" : "p-3"}`}
+          className={cn("shrink-0 rounded-xl bg-slate-900 border border-black/12 text-white flex flex-col min-h-0 overflow-hidden", !rightCollapsed && "p-3")}
           style={{ width: rightCollapsed ? 32 : rightPanelWidth }}
         >
           {/* 收合狀態：僅展開按鈕 */}
@@ -230,12 +231,12 @@ export default function RuleViewer() {
                       }
                       setRightTab(tab);
                     }}
-                    className={`px-3 py-1 rounded text-xs font-semibold cursor-pointer transition-colors ${rightTab === tab
+                    className={cn("px-3 py-1 rounded text-xs font-semibold cursor-pointer transition-colors", rightTab === tab
                         ? "bg-white/15 text-white"
                         : "text-slate-400 hover:text-white hover:bg-white/7"
-                      }`}
+                      )}
                   >
-                    {tab === "search" ? "搜尋" : "Tracker"}
+                    {tab === "search" ? "Viewer" : "Tracker"}
                   </button>
                 ))}
               </div>
@@ -297,10 +298,10 @@ export default function RuleViewer() {
                     key={m.id}
                     onClick={() => handlePick(i)}
                     onDoubleClick={() => ruleViewRef.current?.openInspectorById(m.id)}
-                    className={`text-left px-3 py-2 rounded-lg border text-xs cursor-pointer transition-colors ${i === matchIndex
+                    className={cn("text-left px-3 py-2 rounded-lg border text-xs cursor-pointer transition-colors", i === matchIndex
                         ? "border-green-500/50 bg-green-500/10 text-white"
                         : "border-white/10 bg-white/4 text-slate-300 hover:bg-white/8"
-                      }`}
+                      )}
                   >
                     <div className="font-semibold truncate">
                       <span className="text-white/40 mr-1.5">{i + 1}.</span>

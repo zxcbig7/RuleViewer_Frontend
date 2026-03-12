@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Select } from "antd";
+import { cn } from "../../utls/clsx";
 
 type Props = {
   phases: string[];
@@ -165,13 +166,13 @@ export function RuleDropdownSearch({
                   <li
                     key={opt}
                     data-item
-                    className={`px-3 py-2 text-sm cursor-pointer ${
+                    className={cn("px-3 py-2 text-sm cursor-pointer",
                       i === ruleHighlightIdx
                         ? "bg-blue-200 text-blue-500"
                         : opt === pendingRule
                         ? "bg-blue-50 text-blue-500"
                         : "hover:bg-gray-100"
-                    }`}
+                    )}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       confirmRule(opt);
@@ -191,11 +192,11 @@ export function RuleDropdownSearch({
         <button
           onClick={() => handleLoad()}
           disabled={!canLoad}
-          className={`h-8 px-4 rounded text-sm font-semibold transition-colors ${
+          className={cn("h-8 px-4 rounded text-sm font-semibold transition-colors",
             canLoad
               ? "bg-blue-500 text-white hover:bg-blue-400 cursor-pointer"
               : "bg-gray-100 text-black/25 cursor-not-allowed border border-gray-300"
-          }`}
+          )}
         >
           載入
         </button>

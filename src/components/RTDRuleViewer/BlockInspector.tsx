@@ -14,6 +14,7 @@
 
 import React, { useEffect, useRef } from "react";
 import type { Block, BlockValue, RuleData } from "./types";
+import { cn } from "../../utls/clsx";
 
 // ─────────────────────────────────────────────────────────────
 // Shell Props
@@ -187,13 +188,13 @@ export function BlockInspector({
   return (
     <div
       ref={panelRef}
-      className={`absolute top-0 left-0 w-90 min-w-75 min-h-50 flex flex-col bg-white shadow-[0_12px_30px_rgba(0,0,0,0.18)] pointer-events-auto overflow-hidden border border-gray-200 border-l-4 ${accent.borderLeft}`}
+      className={cn("absolute top-0 left-0 w-90 min-w-75 min-h-50 flex flex-col bg-white shadow-[0_12px_30px_rgba(0,0,0,0.18)] pointer-events-auto overflow-hidden border border-gray-200 border-l-4 rounded-[1px]", accent.borderLeft)}
       style={{ zIndex }}
       onMouseDown={(e) => { e.stopPropagation(); onFocus?.(); }}
     >
       {/* Header（拖曳區） */}
       <div
-        className={`flex items-center gap-2 select-none px-3 py-2 shrink-0 cursor-move border-b border-gray-200 ${accent.headerBg}`}
+        className={cn("flex items-center gap-2 select-none px-3 py-2 shrink-0 cursor-move border-b border-gray-200", accent.headerBg)}
         onMouseDown={(e) => {
           e.stopPropagation();
           onFocus?.();
@@ -206,7 +207,7 @@ export function BlockInspector({
           dragRef.current.startY = e.clientY - rect.top;
         }}
       >
-        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 ${accent.badgeClasses}`}>
+        <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0", accent.badgeClasses)}>
           {block.type}
         </span>
         <strong className="text-sm truncate min-w-0">{r.BLOCK_NAME}</strong>
@@ -275,10 +276,10 @@ function MetaRow({ label, value }: { label: string; value?: string | null }) {
 
 function PreBlockBadge({ name, isPrimary }: { name: string; isPrimary: boolean }) {
   return (
-    <span className={`text-[11px] px-2 py-0.5 rounded border font-mono ${isPrimary
+    <span className={cn("text-[11px] px-2 py-0.5 rounded border font-mono", isPrimary
       ? "border-gray-700 text-gray-700 bg-gray-50"
       : "border-orange-600 text-orange-600 bg-orange-50"
-      }`}>
+      )}>
       {isPrimary ? "●" : "○"} {name}
     </span>
   );
@@ -291,8 +292,8 @@ function ColField({ label, value, labelCls = "text-gray-400", valueCls = "text-g
 }) {
   return (
     <span className="flex flex-col gap-0.5">
-      <span className={`text-[9px] font-medium ${labelCls}`}>{label}</span>
-      <span className={`font-mono font-semibold ${valueCls}`}>{value}</span>
+      <span className={cn("text-[9px] font-medium", labelCls)}>{label}</span>
+      <span className={cn("font-mono font-semibold", valueCls)}>{value}</span>
     </span>
   );
 }
@@ -314,9 +315,9 @@ function ValueCard({ index, v, theme = "gray", col1Label, col2Label, showArrow =
   const isBlue = theme === "blue";
   const labelCls = isBlue ? "text-blue-400" : "text-gray-400";
   return (
-    <div className={`rounded border ${t.border} ${t.bg} p-2.5`}>
+    <div className={cn("rounded border p-2.5", t.border, t.bg)}>
       <div className="flex items-center gap-2 mb-1.5">
-        <span className={`text-[10px] ${t.indexCls} font-medium w-4 text-right shrink-0`}>{index + 1}</span>
+        <span className={cn("text-[10px] font-medium w-4 text-right shrink-0", t.indexCls)}>{index + 1}</span>
         {showArrow && <span className="text-[10px] text-gray-400">←</span>}
         <div className="flex gap-3 text-xs min-w-0">
           {v.COLUMN1 && <ColField label={col1Label} value={v.COLUMN1} labelCls={labelCls} valueCls="text-blue-700" />}
@@ -324,7 +325,7 @@ function ValueCard({ index, v, theme = "gray", col1Label, col2Label, showArrow =
         </div>
       </div>
       {v.VALUE != null && (
-        <pre className={`font-mono text-xs leading-relaxed bg-white border ${t.border} rounded px-2.5 py-1.5 m-0 whitespace-pre-wrap break-all ml-6`}>
+        <pre className={cn("font-mono text-xs leading-relaxed bg-white border rounded px-2.5 py-1.5 m-0 whitespace-pre-wrap break-all ml-6", t.border)}>
           <HighlightedValue code={v.VALUE} />
         </pre>
       )}

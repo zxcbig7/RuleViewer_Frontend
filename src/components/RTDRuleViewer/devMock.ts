@@ -23,55 +23,35 @@ export const DEV_MOCK_RULE_NAME_ICON = "__DEV_Example_ICONS__";
 export const DEV_MOCK_RULES: RuleData[] = [
   {
     PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "START", BLOCK_TYPE: BlockTypes.START, BLOCK_GROUP: "G1", BLOCK_SEQ: "1",
-    KEY: null, POSX: 300, POSY: 100, PRE_BLOCK: null, VALUES: [],
-  },
-  {
-    PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "DECISION", BLOCK_TYPE: BlockTypes.DECISION, BLOCK_GROUP: "G1", BLOCK_SEQ: "6",
-    KEY: "COLUMN", POSX: 300, POSY: 250, PRE_BLOCK: ["START"],
-    VALUES: [
-      { COLUMN1: "RESULT", COLUMN2: "COLUMN", VALUE: 'IF COLUMN = "A" THEN "TRUE" ELSE "FALSE"' },
+    BLOCK_NAME: "Repository1", BLOCK_TYPE: BlockTypes.Repository, BLOCK_GROUP: "G1", BLOCK_SEQ: "1",
+    KEY: "test.apf", POSX: 300, POSY: 100, PRE_BLOCK: null, VALUES: [
+      { COLUMN1: "col1,col2,col3", COLUMN2: null, VALUE: null },
     ],
   },
   {
     PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "TRUE_PATH2", BLOCK_TYPE: BlockTypes.PROCESS, BLOCK_GROUP: "G1", BLOCK_SEQ: "2",
-    KEY: "COLUMN", POSX: 500, POSY: 250, PRE_BLOCK: ["DECISION", "FALSE_PATH"],
-    VALUES: [
-      { COLUMN1: "RESULT", COLUMN2: "COLUMN", VALUE: 'IF COLUMN = "A" THEN "TRUE" ELSE "FALSE"' },
-    ],
+    BLOCK_NAME: "MacroImport01", BLOCK_TYPE: BlockTypes.MacroImport, BLOCK_GROUP: "G1", BLOCK_SEQ: "1",
+    KEY: "test.txt", POSX: 400, POSY: 100, PRE_BLOCK: null, VALUES: [],
   },
   {
     PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "TRUE_PATH", BLOCK_TYPE: BlockTypes.PROCESS, BLOCK_GROUP: "G1", BLOCK_SEQ: "3",
-    KEY: null, POSX: 150, POSY: 420, PRE_BLOCK: ["DECISION"],
+    BLOCK_NAME: "Index01", BLOCK_TYPE: BlockTypes.Index, BLOCK_GROUP: "G1", BLOCK_SEQ: "1",
+    KEY: "test.txt", POSX: 400, POSY: 300, PRE_BLOCK: ["MacroImport01", "Repository1"], 
     VALUES: [
-      { COLUMN1: "STATUS", COLUMN2: null, VALUE: '/* 條件成立 */ "PASS"' },
+      { COLUMN1: "col1,col2,col3", COLUMN2: "col1,col2,col3", VALUE: null },
     ],
   },
-  {
+    {
     PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "FALSE_PATH", BLOCK_TYPE: BlockTypes.PROCESS, BLOCK_GROUP: "G1", BLOCK_SEQ: "4",
-    KEY: null, POSX: 450, POSY: 420, PRE_BLOCK: ["DECISION"],
+    BLOCK_NAME: "Function1", BLOCK_TYPE: BlockTypes.Function, BLOCK_GROUP: "G1", BLOCK_SEQ: "1",
+    KEY: "test.txt", POSX: 600, POSY: 300, PRE_BLOCK: ["Index01"], 
     VALUES: [
-      { COLUMN1: "STATUS", COLUMN2: null, VALUE: '/* 條件不成立 */ "SKIP"' },
+      { COLUMN1: "col1", COLUMN2: null, VALUE: "null" },
+      { COLUMN1: "col2", COLUMN2: null, VALUE: "null" },
+      { COLUMN1: "col3", COLUMN2: null, VALUE: "null" },
     ],
   },
-  {
-    PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "MERGE", BLOCK_TYPE: BlockTypes.PROCESS, BLOCK_GROUP: "G1", BLOCK_SEQ: "5",
-    KEY: null, POSX: 300, POSY: 600,
-    PRE_BLOCK: ["TRUE_PATH", "FALSE_PATH"], // [0]=主線 [1]=副線
-    VALUES: [
-      { COLUMN1: "MERGE_RESULT", COLUMN2: "STATUS", VALUE: 'MergeResult("TRUE_PATH", "FALSE_PATH")' },
-    ],
-  },
-  {
-    PHASE: "DEV", RULE_NAME: DEV_MOCK_RULE_NAME,
-    BLOCK_NAME: "END", BLOCK_TYPE: BlockTypes.END, BLOCK_GROUP: "G1", BLOCK_SEQ: "6",
-    KEY: null, POSX: 300, POSY: 760, PRE_BLOCK: ["MERGE"], VALUES: [],
-  },
+
 ];
 
 // #region 各種 Block 類型示例（10 欄 grid，每格 100px）
@@ -91,63 +71,63 @@ function iconBlock(name: string, type: string, col: number, row: number): RuleDa
 
 export const DEV_MOCK_RULE_ICON: RuleData[] = [
   // Input (row 0)
-  iconBlock("Data",           BlockTypes.Data,           0, 0),
-  iconBlock("DataSource",     BlockTypes.DataSource,     1, 0),
-  iconBlock("Import",         BlockTypes.Import,         2, 0),
-  iconBlock("MacroImport",    BlockTypes.MacroImport,    3, 0),
+  iconBlock("Data", BlockTypes.Data, 0, 0),
+  iconBlock("DataSource", BlockTypes.DataSource, 1, 0),
+  iconBlock("Import", BlockTypes.Import, 2, 0),
+  iconBlock("MacroImport", BlockTypes.MacroImport, 3, 0),
   iconBlock("MacroParameter", BlockTypes.MacroParameter, 4, 0),
-  iconBlock("Repository",     BlockTypes.Repository,     5, 0),
-  iconBlock("SQL",            BlockTypes.SQL,            6, 0),
-  iconBlock("Tag",            BlockTypes.Tag,            7, 0),
+  iconBlock("Repository", BlockTypes.Repository, 5, 0),
+  iconBlock("SQL", BlockTypes.SQL, 6, 0),
+  iconBlock("Tag", BlockTypes.Tag, 7, 0),
 
   // Data (row 1)
-  iconBlock("Index",          BlockTypes.Index,          0, 1),
-  iconBlock("Join",           BlockTypes.Join,           1, 1),
-  iconBlock("MacroFunction",  BlockTypes.MacroFunction,  2, 1),
-  iconBlock("Procedure",      BlockTypes.Procedure,      3, 1),
-  iconBlock("Union",          BlockTypes.Union,          4, 1),
+  iconBlock("Index", BlockTypes.Index, 0, 1),
+  iconBlock("Join", BlockTypes.Join, 1, 1),
+  iconBlock("MacroFunction", BlockTypes.MacroFunction, 2, 1),
+  iconBlock("Procedure", BlockTypes.Procedure, 3, 1),
+  iconBlock("Union", BlockTypes.Union, 4, 1),
 
   // Function (row 2–3)
-  iconBlock("Batch",          BlockTypes.Batch,          0, 2),
-  iconBlock("Compress",       BlockTypes.Compress,       1, 2),
-  iconBlock("Cumulate",       BlockTypes.Cumulate,       2, 2),
-  iconBlock("Delta",          BlockTypes.Delta,          3, 2),
-  iconBlock("Duration",       BlockTypes.Duration,       4, 2),
-  iconBlock("EventMaker",     BlockTypes.EventMaker,     5, 2),
-  iconBlock("Filter",         BlockTypes.Filter,         6, 2),
-  iconBlock("Function",       BlockTypes.Function,       7, 2),
-  iconBlock("HyperLink",      BlockTypes.HyperLink,      8, 2),
-  iconBlock("LoopBegin",      BlockTypes.LoopBegin,      9, 2),
-  iconBlock("LoopEnd",        BlockTypes.LoopEnd,        0, 3),
-  iconBlock("Percentage",     BlockTypes.Percentage,     1, 3),
-  iconBlock("Product",        BlockTypes.Product,        2, 3),
-  iconBlock("Rule",           BlockTypes.Rule,           3, 3),
-  iconBlock("Select",         BlockTypes.Select,         4, 3),
-  iconBlock("Snapshot",       BlockTypes.Snapshot,       5, 3),
-  iconBlock("Sort",           BlockTypes.Sort,           6, 3),
-  iconBlock("TempMaker",      BlockTypes.TempMaker,      7, 3),
+  iconBlock("Batch", BlockTypes.Batch, 0, 2),
+  iconBlock("Compress", BlockTypes.Compress, 1, 2),
+  iconBlock("Cumulate", BlockTypes.Cumulate, 2, 2),
+  iconBlock("Delta", BlockTypes.Delta, 3, 2),
+  iconBlock("Duration", BlockTypes.Duration, 4, 2),
+  iconBlock("EventMaker", BlockTypes.EventMaker, 5, 2),
+  iconBlock("Filter", BlockTypes.Filter, 6, 2),
+  iconBlock("Function", BlockTypes.Function, 7, 2),
+  iconBlock("HyperLink", BlockTypes.HyperLink, 8, 2),
+  iconBlock("LoopBegin", BlockTypes.LoopBegin, 9, 2),
+  iconBlock("LoopEnd", BlockTypes.LoopEnd, 0, 3),
+  iconBlock("Percentage", BlockTypes.Percentage, 1, 3),
+  iconBlock("Product", BlockTypes.Product, 2, 3),
+  iconBlock("Rule", BlockTypes.Rule, 3, 3),
+  iconBlock("Select", BlockTypes.Select, 4, 3),
+  iconBlock("Snapshot", BlockTypes.Snapshot, 5, 3),
+  iconBlock("Sort", BlockTypes.Sort, 6, 3),
+  iconBlock("TempMaker", BlockTypes.TempMaker, 7, 3),
 
   // Output (row 4–5)
-  iconBlock("Action",         BlockTypes.Action,         0, 4),
-  iconBlock("Bar",            BlockTypes.Bar,            1, 4),
-  iconBlock("Barline",        BlockTypes.Barline,        2, 4),
-  iconBlock("BoxPlot",        BlockTypes.BoxPlot,        3, 4),
+  iconBlock("Action", BlockTypes.Action, 0, 4),
+  iconBlock("Bar", BlockTypes.Bar, 1, 4),
+  iconBlock("Barline", BlockTypes.Barline, 2, 4),
+  iconBlock("BoxPlot", BlockTypes.BoxPlot, 3, 4),
   iconBlock("DispatchScreen", BlockTypes.DispatchScreen, 4, 4),
-  iconBlock("Gantt",          BlockTypes.Gantt,          5, 4),
-  iconBlock("Line",           BlockTypes.Line,           6, 4),
-  iconBlock("MacroExport",    BlockTypes.MacroExport,    7, 4),
-  iconBlock("Pie",            BlockTypes.Pie,            8, 4),
-  iconBlock("ResultTable",    BlockTypes.ResultTable,    9, 4),
-  iconBlock("StackBar",       BlockTypes.StackBar,       0, 5),
-  iconBlock("StackBarLine",   BlockTypes.StackBarLine,   1, 5),
-  iconBlock("StackTemporal",  BlockTypes.StackTemporal,  2, 5),
-  iconBlock("Table",          BlockTypes.Table,          3, 5),
-  iconBlock("Temporal",       BlockTypes.Temporal,       4, 5),
-  iconBlock("XY",             BlockTypes.XY,             5, 5),
-  iconBlock("XYTable",        BlockTypes.XYTable,        6, 5),
+  iconBlock("Gantt", BlockTypes.Gantt, 5, 4),
+  iconBlock("Line", BlockTypes.Line, 6, 4),
+  iconBlock("MacroExport", BlockTypes.MacroExport, 7, 4),
+  iconBlock("Pie", BlockTypes.Pie, 8, 4),
+  iconBlock("ResultTable", BlockTypes.ResultTable, 9, 4),
+  iconBlock("StackBar", BlockTypes.StackBar, 0, 5),
+  iconBlock("StackBarLine", BlockTypes.StackBarLine, 1, 5),
+  iconBlock("StackTemporal", BlockTypes.StackTemporal, 2, 5),
+  iconBlock("Table", BlockTypes.Table, 3, 5),
+  iconBlock("Temporal", BlockTypes.Temporal, 4, 5),
+  iconBlock("XY", BlockTypes.XY, 5, 5),
+  iconBlock("XYTable", BlockTypes.XYTable, 6, 5),
 
   // Other (row 6)
-  iconBlock("Annotation",     BlockTypes.Annotation,     0, 6),
+  iconBlock("Annotation", BlockTypes.Annotation, 0, 6),
 ];
 // #endregion
 

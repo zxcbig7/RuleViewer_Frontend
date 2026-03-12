@@ -13,6 +13,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { cn } from "../../utls/clsx";
 
 import type { Block, RuleData, RuleViewHandle } from "./types";
 import { buildBlocks, drawBlocks, hitTestBlock } from "./blockUtils";
@@ -624,7 +625,7 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
         {/* Minimap + Controls */}
         <div className="absolute left-5 bottom-5 flex flex-col gap-1.5">
           {/* Minimap — 用 hidden 隱藏而非 unmount，保持 ref 與事件監聽器有效 */}
-          <div className={`border border-gray-400 bg-white self-start${showMinimap ? "" : " hidden"}`}>
+          <div className={cn("border border-gray-400 bg-white self-start", !showMinimap && "hidden")}>
             <canvas ref={minimapRef} width={minimapSize.w} height={minimapSize.h} style={{ display: "block" }} />
           </div>
 
@@ -641,10 +642,10 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
                 });
               }}
               title="Toggle connector lines"
-              className={`w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors ${showConnectors
+              className={cn("w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors", showConnectors
                   ? "bg-indigo-500 border-indigo-600 text-white hover:bg-indigo-600"
                   : "bg-white border-gray-400 text-gray-400 hover:bg-gray-100"
-                }`}
+                )}
             >╌</button>
             {/* Grid toggle  # = grid */}
             <button
@@ -657,19 +658,19 @@ export const RuleView = forwardRef<RuleViewHandle, RuleViewProps>(
                 });
               }}
               title="Toggle grid"
-              className={`w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors ${showGrid
+              className={cn("w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors", showGrid
                   ? "bg-indigo-500 border-indigo-600 text-white hover:bg-indigo-600"
                   : "bg-white border-gray-400 text-gray-400 hover:bg-gray-100"
-                }`}
+                )}
             >#</button>
             {/* Minimap toggle  ⊡ = overview box */}
             <button
               onClick={() => setShowMinimap((v) => !v)}
               title="Toggle minimap"
-              className={`w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors ${showMinimap
+              className={cn("w-9 h-9 flex items-center justify-center rounded border text-base cursor-pointer shadow-sm transition-colors", showMinimap
                   ? "bg-indigo-500 border-indigo-600 text-white hover:bg-indigo-600"
                   : "bg-white border-gray-400 text-gray-400 hover:bg-gray-100"
-                }`}
+                )}
             >⊡</button>
             {/* Divider */}
             <div className="w-px h-6 bg-gray-300" />

@@ -15,6 +15,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { RuleData } from "./types";
+import { cn } from "../../utls/clsx";
 import { MOCK_VAR_SOURCES } from "./devMock";
 import type { VariableSource } from "./devMock";
 
@@ -32,13 +33,17 @@ function sortBlocks(rules: RuleData[]): RuleData[] {
   const nameToRule = new Map(rules.map((r) => [r.BLOCK_NAME, r]));
   const sorted: RuleData[] = [];
   const visited = new Set<string>();
+  const visiting = new Set<string>(); // 偵測循環依賴
 
   function visit(rule: RuleData) {
     if (visited.has(rule.BLOCK_NAME)) return;
+    if (visiting.has(rule.BLOCK_NAME)) return; // 有循環，跳過
+    visiting.add(rule.BLOCK_NAME);
     for (const pre of rule.PRE_BLOCK ?? []) {
       const parent = nameToRule.get(pre);
       if (parent) visit(parent);
     }
+    visiting.delete(rule.BLOCK_NAME);
     visited.add(rule.BLOCK_NAME);
     sorted.push(rule);
   }
@@ -122,11 +127,11 @@ function getBlockStyle(type: string) {
 
 function AntiBlueBadge({ name, active }: { name: string; active?: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-0.5 px-1.5 py-px rounded text-xs font-bold font-mono mx-0.5 align-middle border ${
+    <span className={cn("inline-flex items-center gap-0.5 px-1.5 py-px rounded text-xs font-bold font-mono mx-0.5 align-middle border",
       active
         ? "bg-red-500/25 text-red-300 border-red-500/50 ring-1 ring-red-400/30"
         : "bg-red-500/10 text-red-400/70 border-red-500/20"
-    }`}>
+    )}>
       <span className="text-red-500/50 text-xs">[$</span>
       {name}
       <span className="text-red-500/50 text-xs">$]</span>
@@ -242,14 +247,14 @@ function BlockCard({
   }
 
   return (
-    <div className={`rounded-lg border overflow-hidden ${style.border}`}>
+    <div className={cn("rounded-lg border overflow-hidden", style.border)}>
       {/* Header */}
       <button
         onClick={() => setCollapsed((c) => !c)}
         className="w-full flex items-center gap-2 px-3 py-2 bg-white/3 border-b border-white/6 cursor-pointer hover:bg-white/6 transition-colors text-left"
       >
         <span className="text-slate-600 font-mono text-xs w-5 shrink-0">{seqNum}</span>
-        <span className={`text-xs px-2 py-0.5 rounded font-bold font-mono shrink-0 ${style.badge}`}>
+        <span className={cn("text-xs px-2 py-0.5 rounded font-bold font-mono shrink-0", style.badge)}>
           {block.BLOCK_TYPE}
         </span>
         <span className="text-slate-300 text-xs font-mono font-semibold flex-1 truncate">
@@ -270,18 +275,18 @@ function BlockCard({
             return (
               <div
                 key={i}
-                className={`px-3 py-2 flex flex-col gap-1.5 transition-opacity ${!relevant ? "opacity-30" : ""}`}
+                className={cn("px-3 py-2 flex flex-col gap-1.5 transition-opacity", !relevant && "opacity-30")}
               >
                 <div className="flex items-start gap-2 flex-wrap">
                   {/* COLUMN1 */}
                   {v.COLUMN1 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); onCol1Click(v.COLUMN1!); }}
-                      className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded border shrink-0 transition-colors cursor-pointer ${
+                      className={cn("font-mono text-xs font-bold px-1.5 py-0.5 rounded border shrink-0 transition-colors cursor-pointer",
                         selectedDbVar === v.COLUMN1
                           ? "text-sky-300 border-blue-400/50 bg-blue-500/15"
                           : "text-sky-300 border-sky-300/20 bg-sky-300/5 hover:bg-sky-300/10"
-                      }`}
+                      )}
                       title={`查看 ${v.COLUMN1} 來源`}
                     >
                       {v.COLUMN1}
@@ -336,7 +341,7 @@ function VarSourcePanel({ source, varName }: { source: VariableSource | null; va
         <div className="text-slate-400 text-xs uppercase tracking-wide mb-1.5">變數</div>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sky-300 font-mono text-sm font-bold">{varName}</span>
-          <span className={`text-xs px-2 py-0.5 rounded border font-bold ${typeStyle}`}>
+          <span className={cn("text-xs px-2 py-0.5 rounded border font-bold", typeStyle)}>
             {source?.varType ?? "UNKNOWN"}
           </span>
         </div>
@@ -554,11 +559,11 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
               <li
                 key={name}
                 data-item
-                className={`px-2.5 py-1.5 text-xs font-mono cursor-pointer flex items-center gap-1 ${
+                className={cn("px-2.5 py-1.5 text-xs font-mono cursor-pointer flex items-center gap-1",
                   i === logHighlightIdx
                     ? "bg-white/15 text-white"
                     : "text-slate-300 hover:bg-white/10 hover:text-white"
-                }`}
+                )}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   setSearchInput(`[$${name}$]`);
@@ -621,11 +626,11 @@ export function CaseQuery({ rules, selectedRule, onHighlight }: CaseQueryProps) 
         <span className="text-slate-600 text-xs">/</span>
         <button
           onClick={isLogMode ? undefined : handleBack}
-          className={`inline-flex items-center gap-0.5 px-1 py-px rounded text-xs font-bold font-mono border transition-colors ${
+          className={cn("inline-flex items-center gap-0.5 px-1 py-px rounded text-xs font-bold font-mono border transition-colors",
             isLogMode
               ? "bg-red-500/20 text-red-300 border-red-500/40 cursor-default"
               : "bg-red-500/10 text-red-400/60 border-red-500/20 hover:bg-red-500/20 hover:text-red-300 cursor-pointer"
-          }`}
+          )}
         >
           <span className="opacity-50">[$</span>{logName}<span className="opacity-50">$]</span>
         </button>

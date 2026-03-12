@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm install axios)",
-      "WebFetch(domain:flowbite.com)"
+      "WebFetch(domain:flowbite.com)",
+      "Bash(npm ls:*)"
     ]
   }
 }
